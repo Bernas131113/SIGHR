@@ -3,7 +3,7 @@
     using System.Collections.Generic;
     using System.ComponentModel.DataAnnotations;
 
-    public class Utilizador
+    public class Utilizadores
     {
         public long Id { get; set; }
 
