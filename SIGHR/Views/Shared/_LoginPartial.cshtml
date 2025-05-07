@@ -1,0 +1,19 @@
+﻿@using Microsoft.AspNetCore.Identity
+@using SIGHR.Models
+@inject SignInManager<Utilizadores> SignInManager
+@inject UserManager<Utilizadores> UserManager
+
+@if (SignInManager.IsSignedIn(User))
+{
+    <li class="nav-item">
+        <form id="logoutForm" asp-area="Identity" asp-page="/Account/Logout" method="post">
+            <button type="submit" class="nav-link btn btn-outline-danger">Sair</button>
+        </form>
+    </li>
+}
+else
+{
+    <li class="nav-item">
+        <a class="nav-link btn btn-outline-primary" asp-area="Identity" asp-page="/Account/Login">Entrar</a>
+    </li>
+}
