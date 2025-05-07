@@ -1,4 +1,13 @@
+using Microsoft.AspNetCore.Identity;
+using Microsoft.EntityFrameworkCore;
+using SIGHR.Areas.Identity.Data;
+using SIGHR.Data;
 var builder = WebApplication.CreateBuilder(args);
+var connectionString = builder.Configuration.GetConnectionString("SIGHRContextConnection") ?? throw new InvalidOperationException("Connection string 'SIGHRContextConnection' not found.");
+
+builder.Services.AddDbContext<SIGHRContext>(options => options.UseSqlServer(connectionString));
+
+builder.Services.AddDefaultIdentity<SIGHRUser>(options => options.SignIn.RequireConfirmedAccount = true).AddEntityFrameworkStores<SIGHRContext>();
 
 // Add services to the container.
 builder.Services.AddControllersWithViews();
