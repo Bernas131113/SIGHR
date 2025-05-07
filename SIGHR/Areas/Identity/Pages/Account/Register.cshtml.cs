@@ -156,10 +156,6 @@ namespace AppFotos.Areas.Identity.Pages.Account {
                // var auxiliar
                bool haErro = false;
 
-               // atribuir o UserName do utilizador AspNetUser criado 
-               // ao objeto Utilizador
-               Input.Utilizador.UserName = Input.Email;
-
                try {
                   _context.Add(Input.Utilizador);
                   await _context.SaveChangesAsync();
