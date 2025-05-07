@@ -27,6 +27,6 @@
         public string Motivo { get; set; }
 
         [ForeignKey("UtilizadorId")]
-        public Utilizador Utilizador { get; set; }
+        public Utilizadores Utilizadores { get; set; }
     }
 }

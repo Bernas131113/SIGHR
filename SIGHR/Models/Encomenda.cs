@@ -22,7 +22,7 @@
         public bool EstadoAtual { get; set; }
 
         [ForeignKey("UtilizadorId")]
-        public Utilizador Utilizador { get; set; }
+        public Utilizadores Utilizadores { get; set; }
 
         public ICollection<Requisicao> Requisicoes { get; set; }
     }

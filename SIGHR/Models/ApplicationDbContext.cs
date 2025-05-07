@@ -38,17 +38,17 @@ namespace SIGHR.Models
                 .HasForeignKey(r => r.EncomendaId);
 
             modelBuilder.Entity<Horario>()
-                .HasOne(h => h.Utilizador)
+                .HasOne(h => h.Utilizadores)
                 .WithMany(u => u.Horarios)
                 .HasForeignKey(h => h.UtilizadorId);
 
             modelBuilder.Entity<Falta>()
-                .HasOne(f => f.Utilizador)
+                .HasOne(f => f.Utilizadores)
                 .WithMany(u => u.Faltas)
                 .HasForeignKey(f => f.UtilizadorId);
 
             modelBuilder.Entity<Encomenda>()
-                .HasOne(e => e.Utilizador)
+                .HasOne(e => e.Utilizadores)
                 .WithMany(u => u.Encomendas)
                 .HasForeignKey(e => e.UtilizadorId);
 
