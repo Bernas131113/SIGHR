@@ -1,0 +1,457 @@
+﻿@import url('https://fonts.googleapis.com/css2?family=Rubik:wght@400;500;600&display=swap');
+
+* {
+    font-family: 'Rubik', sans-serif;
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+
+body {
+    font-family: 'Roboto', Arial, sans-serif;
+    background: linear-gradient(to bottom, #a7c7f1, #81a6d1); /* Cor suave de fundo em tons de azul */
+    color: #333;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 20px;
+}
+
+label {
+    margin-top: 12px;
+}
+
+.overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.5); /* Fundo escuro semi-transparente */
+    z-index: 999; /* Abaixo da sidebar, mas acima do conteúdo */
+    display: none; /* Inicialmente escondido */
+    transition: opacity 0.3s ease;
+}
+
+/* Mostrar overlay quando a sidebar está aberta */
+.sidebar.open ~ .overlay {
+    display: block;
+    opacity: 1;
+}
+
+/* Sidebar com uma cor azul escura */
+.sidebar {
+    position: fixed;
+    top: 0;
+    left: -270px;
+    width: 270px;
+    height: 100vh;
+    background: #212f4f; /* Azul escuro */
+    color: #fff;
+    transition: left 0.4s ease;
+    z-index: 1000;
+    box-shadow: 2px 0 10px rgba(0, 0, 0, 0.1);
+}
+
+    .sidebar.open {
+        left: 0; /* Mostrar a sidebar */
+    }
+
+        .sidebar.open ~ .toggle-btn {
+            display: none;
+        }
+
+.sidebar-header {
+    padding: 25px 20px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    border-bottom: 1px solid #34495e; /* Cor do borde inferior */
+}
+
+.sidebar-header {
+    font-size: 1.5rem;
+    font-weight: 600;
+    color: #eef2ff; /* Cor clara para o título */
+}
+
+    .sidebar-header .sidebar-toggler {
+        background: #eef2ff;
+        border: none;
+        border-radius: 8px;
+        padding: 8px;
+        cursor: pointer;
+        transition: background 0.3s ease;
+    }
+
+        .sidebar-header .sidebar-toggler:hover {
+            background: #b0c4de; /* Azul mais claro no hover */
+        }
+
+        .sidebar-header .sidebar-toggler span {
+            font-size: 1.5rem;
+            color: #151a2d;
+        }
+
+.menu-items {
+    padding: 20px;
+}
+
+.menu-item {
+    display: flex;
+    align-items: center;
+    padding: 12px 15px;
+    margin: 8px 0;
+    border-radius: 8px;
+    color: #f1f4ff;
+    text-decoration: none;
+    transition: background 0.3s ease, padding-left 0.3s ease;
+    cursor: pointer;
+}
+
+    .menu-item:hover {
+        background: #34495e; /* Azul mais escuro no hover */
+        padding-left: 20px;
+    }
+
+    .menu-item i {
+        margin-right: 12px;
+        font-size: 1.2rem;
+    }
+
+/* Botão de Toggle */
+.toggle-btn {
+    position: fixed;
+    top: 20px;
+    left: 20px;
+    background: #151a2d;
+    border: none;
+    border-radius: 8px;
+    padding: 10px;
+    cursor: pointer;
+    z-index: 1100;
+    transition: background 0.3s ease;
+}
+
+    .toggle-btn:hover {
+        background: #34495e; /* Cor de hover mais clara */
+    }
+
+    .toggle-btn span {
+        font-size: 1.5rem;
+        color: #eef2ff;
+    }
+
+/* Conteúdo Principal */
+#registo-ponto-area {
+    width: 100%;
+    max-width: 1200px;
+    background: #ffffff;
+    box-shadow: 0 8px 30px rgba(0, 0, 0, 0.2);
+    border-radius: 12px;
+    padding: 20px;
+    margin-top: 20px;
+    animation: fadeIn 0.8s ease-in-out;
+}
+
+.logo-container {
+    text-align: center;
+    margin-bottom: 20px;
+}
+
+.logo {
+    max-width: 150px;
+    height: auto;
+    border-radius: 8px;
+    transition: transform 0.3s;
+}
+
+h1 {
+    font-size: 2.4rem;
+    text-align: center;
+    color: #000000;
+    margin-bottom: 20px;
+    text-shadow: 0 2px 1px rgba(0, 0, 0, 0.15), 0 4px 2px rgba(0, 0, 0, 0.1);
+}
+
+/* Botões */
+.btn {
+    display: inline-block;
+    padding: 10px 20px;
+    margin: 10px 5px;
+    border: none;
+    border-radius: 8px;
+    font-size: 1rem;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    box-shadow: 0 4px 0 rgba(0, 0, 0, 0.1), 0 2px 5px rgba(0, 0, 0, 0.1);
+}
+
+    .btn:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 0 rgba(0, 0, 0, 0.1), 0 4px 10px rgba(0, 0, 0, 0.2);
+    }
+
+    .btn:active {
+        transform: translateY(2px);
+        box-shadow: 0 2px 0 rgba(0, 0, 0, 0.1);
+    }
+
+.btn-green {
+    background: #4caf50;
+    color: white;
+    border-bottom: 3px solid #388e3c;
+}
+
+.btn-red {
+    background: #f44336;
+    color: white;
+    border-bottom: 3px solid #d32f2f;
+}
+
+.btn-blue {
+    background: #3498db; /* Azul mais vibrante */
+    color: white;
+    border-bottom: 3px solid #2980b9;
+}
+/* Estilo para o contêiner do input de senha */
+/* Estilo para o contêiner do input de senha */
+.password-wrapper {
+    position: relative;
+    width: 100%; /* Ou a largura que preferir */
+}
+
+/* Estilo para o campo de senha */
+#escritorioPassword {
+    width: 100%;
+    padding: 12px;
+    padding-right: 40px; /* Espaço para o ícone de olho */
+    margin-bottom: 10px;
+    border: 1px solid #ccc;
+    border-radius: 8px;
+    font-size: 1rem;
+    transition: border 0.3s, box-shadow 0.3s;
+}
+
+/* Estilo para o ícone do olho */
+.password-icon {
+    position: absolute;
+    right: 10px; /* Coloca o ícone à direita */
+    top: 43%;
+    transform: translateY(-50%); /* Centraliza o ícone verticalmente */
+    cursor: pointer;
+    width: 15px; /* Tamanho do ícone */
+    height: 15px; /* Tamanho do ícone */
+}
+
+#togglePasswordIcon2 {
+    width: 100%; /* Ajusta a imagem para 100% do tamanho */
+    height: 100%; /* Faz a imagem se ajustar proporcionalmente */
+    object-fit: contain; /* Mantém a proporção da imagem */
+}
+
+#togglePasswordIcon {
+    width: 100%; /* Ajusta a imagem para 100% do tamanho */
+    height: 100%; /* Faz a imagem se ajustar proporcionalmente */
+    object-fit: contain; /* Mantém a proporção da imagem */
+}
+
+/* Quando o campo de senha está em foco */
+#escritorioPassword:focus {
+    border-color: #1976d2;
+    outline: none;
+    box-shadow: 0 0 8px rgba(25, 118, 210, 0.2);
+}
+
+.periodo-container {
+    display: flex;
+    gap: 20px;
+    margin-bottom: 20px;
+}
+
+.time-input {
+    flex: 1;
+}
+
+.obra-time {
+    width: 100%;
+    padding: 12px;
+    border: 2px solid #e0e0e0;
+    border-radius: 8px;
+    font-size: 16px;
+    margin-top: 8px;
+}
+
+    .obra-time:focus {
+        border-color: #4CAF50;
+        outline: none;
+    }
+
+.flex-center8 .obra-textarea {
+    width: 100%;
+    min-height: 100px;
+    padding: 12px;
+    border: 2px solid #ddd;
+    border-radius: 8px;
+    font-size: 1rem;
+    line-height: 1.5;
+    resize: vertical;
+    transition: all 0.3s ease;
+}
+
+    .flex-center8 .obra-textarea:focus {
+        outline: none;
+        border-color: #4A90E2;
+        box-shadow: 0 0 0 3px rgba(74, 144, 226, 0.2);
+    }
+
+    .flex-center8 .obra-textarea::placeholder {
+        color: #999;
+        font-style: italic;
+    }
+
+#loading-message {
+    margin-top: 30px;
+    margin-bottom: -20px;
+    margin-left: 265px;
+    transform: translate(-50%, -50%);
+    background: rgba(0, 0, 0, 0.8);
+    color: white;
+    padding: 15px;
+    border-radius: 5px;
+    font-size: 18px;
+    text-align: center;
+    font-weight: bold;
+}
+
+/* Inputs e Seletores */
+input[type="text"],
+input[type="password"],
+input[type="date"],
+select {
+    width: 100%;
+    padding: 12px;
+    margin-bottom: 10px;
+    border: 1px solid #ccc;
+    border-radius: 8px;
+    font-size: 1rem;
+    transition: border 0.3s, box-shadow 0.3s;
+}
+
+    input:focus,
+    select:focus {
+        border-color: #1976d2;
+        outline: none;
+        box-shadow: 0 0 8px rgba(25, 118, 210, 0.2);
+    }
+
+.flex-center {
+    display: flex;
+    justify-content: center;
+    gap: 10px;
+    margin-bottom: 20px;
+}
+
+.flex-right {
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+    margin-bottom: 20px;
+}
+
+.mensagem-sucesso {
+    display: none;
+    padding: 15px;
+    background: #d4edda;
+    color: #155724;
+    border: 1px solid #c3e6cb;
+    border-radius: 8px;
+    margin-top: 10px;
+    text-align: center;
+}
+
+.obra-input {
+    width: 100%;
+    max-width: 1200px; /* Ajuste conforme necessário */
+    padding: 10px 10px;
+    font-size: 1rem;
+    border: 1px solid #ccc;
+    border-radius: 8px;
+    transition: all 0.3s ease;
+    outline: none;
+}
+
+    /* Quando o input está em foco */
+    .obra-input:focus {
+        border-color: #1976d2;
+        box-shadow: 0 0 8px rgba(25, 118, 210, 0.3);
+    }
+
+/* Animações */
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(-20px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* Responsividade */
+@media (max-width: 768px) {
+    h1 {
+        font-size: 1.8rem;
+    }
+
+    .btn {
+        width: 100%;
+        margin: 5px 0;
+    }
+
+    .flex-center {
+        flex-direction: column;
+    }
+
+    .flex-right {
+        flex-direction: column;
+    }
+
+    .sidebar {
+        width: 250px;
+    }
+
+    .toggle-btn {
+        left: 20px;
+    }
+
+    .logo {
+        max-width: 100px;
+    }
+
+    input[type="text"],
+    input[type="password"],
+    input[type="date"],
+    select {
+        font-size: 0.9rem;
+        padding: 10px;
+    }
+
+    #loading-message {
+        margin-top: 30px;
+        margin-bottom: -20px;
+        margin-left: 170px;
+        transform: translate(-50%, -50%);
+        background: rgba(0, 0, 0, 0.8);
+        color: white;
+        padding: 15px;
+        border-radius: 5px;
+        font-size: 18px;
+        text-align: center;
+        font-weight: bold;
+    }
+}

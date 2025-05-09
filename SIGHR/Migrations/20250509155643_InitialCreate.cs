@@ -12,7 +12,7 @@ namespace SIGHR.Migrations
         protected override void Up(MigrationBuilder migrationBuilder)
         {
             migrationBuilder.CreateTable(
-                name: "Materiais",
+                name: "Material",
                 columns: table => new
                 {
                     Id = table.Column<long>(type: "bigint", nullable: false)
@@ -21,7 +21,7 @@ namespace SIGHR.Migrations
                 },
                 constraints: table =>
                 {
-                    table.PrimaryKey("PK_Materiais", x => x.Id);
+                    table.PrimaryKey("PK_Material", x => x.Id);
                 });
 
             migrationBuilder.CreateTable(
@@ -41,7 +41,7 @@ namespace SIGHR.Migrations
                 });
 
             migrationBuilder.CreateTable(
-                name: "Encomendas",
+                name: "Encomenda",
                 columns: table => new
                 {
                     Id = table.Column<long>(type: "bigint", nullable: false)
@@ -53,9 +53,9 @@ namespace SIGHR.Migrations
                 },
                 constraints: table =>
                 {
-                    table.PrimaryKey("PK_Encomendas", x => x.Id);
+                    table.PrimaryKey("PK_Encomenda", x => x.Id);
                     table.ForeignKey(
-                        name: "FK_Encomendas_Utilizadores_UtilizadorId",
+                        name: "FK_Encomenda_Utilizadores_UtilizadorId",
                         column: x => x.UtilizadorId,
                         principalTable: "Utilizadores",
                         principalColumn: "Id",
@@ -63,7 +63,7 @@ namespace SIGHR.Migrations
                 });
 
             migrationBuilder.CreateTable(
-                name: "Faltas",
+                name: "Falta",
                 columns: table => new
                 {
                     Id = table.Column<long>(type: "bigint", nullable: false)
@@ -77,9 +77,9 @@ namespace SIGHR.Migrations
                 },
                 constraints: table =>
                 {
-                    table.PrimaryKey("PK_Faltas", x => x.Id);
+                    table.PrimaryKey("PK_Falta", x => x.Id);
                     table.ForeignKey(
-                        name: "FK_Faltas_Utilizadores_UtilizadorId",
+                        name: "FK_Falta_Utilizadores_UtilizadorId",
                         column: x => x.UtilizadorId,
                         principalTable: "Utilizadores",
                         principalColumn: "Id",
@@ -122,36 +122,33 @@ namespace SIGHR.Migrations
                 {
                     table.PrimaryKey("PK_Requisicoes", x => new { x.MaterialId, x.EncomendaId });
                     table.ForeignKey(
-                        name: "FK_Requisicoes_Encomendas_EncomendaId",
+                        name: "FK_Requisicoes_Encomenda_EncomendaId",
                         column: x => x.EncomendaId,
-                        principalTable: "Encomendas",
+                        principalTable: "Encomenda",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Cascade);
                     table.ForeignKey(
-                        name: "FK_Requisicoes_Materiais_MaterialId",
+                        name: "FK_Requisicoes_Material_MaterialId",
                         column: x => x.MaterialId,
-                        principalTable: "Materiais",
+                        principalTable: "Material",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Cascade);
                 });
 
             migrationBuilder.CreateIndex(
-                name: "IX_Encomendas_UtilizadorId",
-                table: "Encomendas",
-                column: "UtilizadorId",
-                unique: true);
+                name: "IX_Encomenda_UtilizadorId",
+                table: "Encomenda",
+                column: "UtilizadorId");
 
             migrationBuilder.CreateIndex(
-                name: "IX_Faltas_UtilizadorId",
-                table: "Faltas",
-                column: "UtilizadorId",
-                unique: true);
+                name: "IX_Falta_UtilizadorId",
+                table: "Falta",
+                column: "UtilizadorId");
 
             migrationBuilder.CreateIndex(
                 name: "IX_Horarios_UtilizadorId",
                 table: "Horarios",
-                column: "UtilizadorId",
-                unique: true);
+                column: "UtilizadorId");
 
             migrationBuilder.CreateIndex(
                 name: "IX_Requisicoes_EncomendaId",
@@ -163,7 +160,7 @@ namespace SIGHR.Migrations
         protected override void Down(MigrationBuilder migrationBuilder)
         {
             migrationBuilder.DropTable(
-                name: "Faltas");
+                name: "Falta");
 
             migrationBuilder.DropTable(
                 name: "Horarios");
@@ -172,10 +169,10 @@ namespace SIGHR.Migrations
                 name: "Requisicoes");
 
             migrationBuilder.DropTable(
-                name: "Encomendas");
+                name: "Encomenda");
 
             migrationBuilder.DropTable(
-                name: "Materiais");
+                name: "Material");
 
             migrationBuilder.DropTable(
                 name: "Utilizadores");

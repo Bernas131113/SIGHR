@@ -5,19 +5,16 @@
 
     public class Requisicao
     {
-        [Key, Column(Order = 0)]
-        public long MaterialId { get; set; }
-
-        [Key, Column(Order = 1)]
-        public long EncomendaId { get; set; }
+        public long MaterialId { get; set; }  // Remover o atributo [Key] aqui
+        public long EncomendaId { get; set; } // Remover o atributo [Key] aqui
 
         [Required]
         public long Quantidade { get; set; }
 
         [ForeignKey("MaterialId")]
-        public Material Material { get; set; }
+        public Material ?Material { get; set; }
 
         [ForeignKey("EncomendaId")]
-        public Encomenda Encomenda { get; set; }
+        public Encomenda ?Encomenda { get; set; }
     }
 }

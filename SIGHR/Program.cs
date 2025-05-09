@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using SIGHR.Areas.Identity.Data;
 using SIGHR.Data;
+using SIGHR.Models;
 var builder = WebApplication.CreateBuilder(args);
 var connectionString = builder.Configuration.GetConnectionString("SIGHRContextConnection") ?? throw new InvalidOperationException("Connection string 'SIGHRContextConnection' not found.");
 
@@ -27,10 +28,34 @@ app.UseStaticFiles();
 
 app.UseRouting();
 
+app.UseAuthentication();
+
 app.UseAuthorization();
 
 app.MapControllerRoute(
     name: "default",
     pattern: "{controller=Home}/{action=Index}/{id?}");
+
+app.MapRazorPages();
+
+using (var scope = app.Services.CreateScope())
+{
+    var context = scope.ServiceProvider.GetRequiredService<SIGHRContext>();
+
+    // Verifica se o utilizador já existe
+    if (!context.Utilizadores.Any(u => u.Username == "bernardo.alves"))
+    {
+        var novoUtilizador = new Utilizadores
+        {
+            Nome = "Bernardo Alves",
+            Username = "bernardo.alves",
+            PIN = 1311,
+            Tipo = "Admin" // ou "Admin", conforme o teu sistema
+        };
+
+        context.Utilizadores.Add(novoUtilizador);
+        context.SaveChanges();
+    }
+}
 
 app.Run();

@@ -27,7 +27,7 @@
         public DateTime SaidaAlmoco { get; set; }
 
         [ForeignKey("UtilizadorId")]
-        public Utilizadores Utilizadores { get; set; }
+        public Utilizadores ?Utilizadores { get; set; }
     }
 
 }

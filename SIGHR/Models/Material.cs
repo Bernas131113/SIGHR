@@ -11,9 +11,9 @@ namespace SIGHR.Models
         public long Id { get; set; }
 
         [Required]
-        public string Descricao { get; set; }
+        public string ?Descricao { get; set; }
 
-        public ICollection<Requisicao> Requisicoes { get; set; }
+        public ICollection<Requisicao> ?Requisicoes { get; set; }
     }
 }
 

@@ -24,9 +24,9 @@
         public DateTime Fim { get; set; }
 
         [Required]
-        public string Motivo { get; set; }
+        public string ?Motivo { get; set; }
 
         [ForeignKey("UtilizadorId")]
-        public Utilizadores Utilizadores { get; set; }
+        public Utilizadores ?Utilizadores { get; set; }
     }
 }

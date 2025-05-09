@@ -3,20 +3,17 @@ using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
-using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
-using SIGHR.Models;
+using SIGHR.Data;
 
 #nullable disable
 
 namespace SIGHR.Migrations
 {
-    [DbContext(typeof(ApplicationDbContext))]
-    [Migration("20250507103157_SIGHR")]
-    partial class SIGHR
+    [DbContext(typeof(SIGHRContext))]
+    partial class SIGHRContextModelSnapshot : ModelSnapshot
     {
-        /// <inheritdoc />
-        protected override void BuildTargetModel(ModelBuilder modelBuilder)
+        protected override void BuildModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -47,10 +44,9 @@ namespace SIGHR.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("UtilizadorId")
-                        .IsUnique();
+                    b.HasIndex("UtilizadorId");
 
-                    b.ToTable("Encomendas");
+                    b.ToTable("Encomenda");
                 });
 
             modelBuilder.Entity("SIGHR.Models.Falta", b =>
@@ -82,10 +78,9 @@ namespace SIGHR.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("UtilizadorId")
-                        .IsUnique();
+                    b.HasIndex("UtilizadorId");
 
-                    b.ToTable("Faltas");
+                    b.ToTable("Falta");
                 });
 
             modelBuilder.Entity("SIGHR.Models.Horario", b =>
@@ -116,8 +111,7 @@ namespace SIGHR.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("UtilizadorId")
-                        .IsUnique();
+                    b.HasIndex("UtilizadorId");
 
                     b.ToTable("Horarios");
                 });
@@ -136,18 +130,16 @@ namespace SIGHR.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("Materiais");
+                    b.ToTable("Material");
                 });
 
             modelBuilder.Entity("SIGHR.Models.Requisicao", b =>
                 {
                     b.Property<long>("MaterialId")
-                        .HasColumnType("bigint")
-                        .HasColumnOrder(0);
+                        .HasColumnType("bigint");
 
                     b.Property<long>("EncomendaId")
-                        .HasColumnType("bigint")
-                        .HasColumnOrder(1);
+                        .HasColumnType("bigint");
 
                     b.Property<long>("Quantidade")
                         .HasColumnType("bigint");

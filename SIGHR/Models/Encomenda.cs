@@ -22,8 +22,8 @@
         public bool EstadoAtual { get; set; }
 
         [ForeignKey("UtilizadorId")]
-        public Utilizadores Utilizadores { get; set; }
+        public Utilizadores ?Utilizadores { get; set; }
 
-        public ICollection<Requisicao> Requisicoes { get; set; }
+        public ICollection<Requisicao> ?Requisicoes { get; set; }
     }
 }
