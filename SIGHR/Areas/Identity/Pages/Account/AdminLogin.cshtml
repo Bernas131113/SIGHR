@@ -1,0 +1,55 @@
+﻿@page 
+@model SIGHR.Areas.Identity.Pages.Account.AdminLoginModel
+
+@{
+    Layout = null; // Esta página não usará o layout padrão para ser independente
+    ViewData["Title"] = "SIGHR Área Administrativa - Login";
+}
+
+<!DOCTYPE html>
+<html lang="pt">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>@ViewData["Title"]</title> <!-- Usar o ViewData["Title"] aqui também -->
+    <link rel="stylesheet" href="~/css/login.css" asp-append-version="true"> <!-- Adicionado asp-append-version -->
+</head>
+<body>
+    <div class="container">
+        <!-- Seu CSS 'login.css' deve estilizar 'container' ou você pode precisar de um wrapper como 'content-wrapper' -->
+        <div id="registo-ponto-area">
+            <!-- Ou uma classe como 'login-form-container' -->
+            <h1>Login de Administrador</h1>
+            <form method="post">
+                @* ADICIONAR ESTE CAMPO OCULTO PARA O ReturnUrl *@
+                <input type="hidden" asp-for="ReturnUrl" />
+
+                <div asp-validation-summary="ModelOnly" class="text-danger"></div> <!-- Melhor colocar no topo -->
+
+                <div class="form-group">
+                    @* Usar asp-for para o label também é uma boa prática para acessibilidade *@
+                    <label asp-for="Input.UserName">Nome de Utilizador</label>
+                    <input asp-for="Input.UserName" type="text" class="obra-input" placeholder="Nome de utilizador" required />
+                    <span asp-validation-for="Input.UserName" class="text-danger"></span>
+                </div>
+
+                <div class="form-group">
+                    <label asp-for="Input.PIN">PIN</label>
+                    <input asp-for="Input.PIN" type="password" class="obra-input" placeholder="PIN" required />
+                    <span asp-validation-for="Input.PIN" class="text-danger"></span>
+                </div>
+
+                <div class="flex-center">
+                    <!-- Esta classe deve ser definida no seu login.css para centralizar -->
+                    <button type="submit" class="btn btn-green">Entrar</button>
+                </div>
+            </form>
+        </div>
+    </div>
+    <!-- Se o seu login.css ou site.js não dependem de jQuery/Bootstrap,
+         você pode mantê-los comentados. Se dependem, descomente. -->
+    <!-- <script src="~/lib/jquery/dist/jquery.min.js"></script> -->
+    <!-- <script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script> -->
+    <!-- <script src="~/js/site.js" asp-append-version="true"></script> -->
+</body>
+</html>

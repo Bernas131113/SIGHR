@@ -1,13 +1,14 @@
 ﻿namespace SIGHR.Controllers
 {
     using Microsoft.AspNetCore.Authorization;
-    using Microsoft.AspNetCore.Mvc;
-    using SIGHR.Data;
+    using Microsoft.AspNetCore.Mvc; // Certifique-se que este é o namespace correto para SIGHRContext e SIGHRUser
     using SIGHR.Models;
     using System;
     using System.Linq;
     using System.Threading.Tasks;
     using System.Security.Claims;
+    using Microsoft.EntityFrameworkCore; // Para FirstOrDefaultAsync
+    using SIGHR.Areas.Identity.Data;
 
     [Authorize] // Apenas utilizadores autenticados podem acessar
     public class RegistoPontoController : Controller
@@ -19,28 +20,44 @@
             _context = context;
         }
 
+        private string? GetCurrentUserId() // Adiciona '?' ao tipo de retorno
+        {
+            return User.FindFirstValue(ClaimTypes.NameIdentifier);
+        }
+
         // Método para registar a entrada
         [HttpPost]
         public async Task<IActionResult> RegistarEntrada()
         {
-            var utilizadorId = User.FindFirstValue(ClaimTypes.NameIdentifier);  // Obtém o ID do utilizador autenticado
+            var utilizadorId = GetCurrentUserId();
+            if (string.IsNullOrEmpty(utilizadorId))
+            {
+                return Unauthorized("Utilizador não autenticado."); // Ou BadRequest
+            }
 
-            var registoExistente = _context.Horarios
-                .FirstOrDefault(r => r.UtilizadorId == long.Parse(utilizadorId) && r.Data.Date == DateTime.Today.Date);
+            var hoje = DateTime.Today; // Para consistência na data
+
+            // Verifica se já existe um registo para o utilizador e data de hoje
+            var registoExistente = await _context.Horarios
+                .FirstOrDefaultAsync(r => r.UtilizadorId == utilizadorId && r.Data.Date == hoje);
 
             if (registoExistente != null)
             {
+                // Poderia verificar se a HoraEntrada é TimeSpan.Zero para permitir um re-registo se algo deu errado
+                // Mas por agora, uma entrada por dia é a regra.
                 return BadRequest("Você já registrou a entrada para hoje.");
             }
 
             var registo = new Horario
             {
-                UtilizadorId = long.Parse(utilizadorId),
-                Data = DateTime.Today,
-                HoraEntrada = DateTime.Now,
-                HoraSaida = DateTime.MinValue, // Será atualizado na saída
-                EntradaAlmoco = DateTime.MinValue,
-                SaidaAlmoco = DateTime.MinValue
+                UtilizadorId = utilizadorId, // Agora é string
+                Data = hoje,
+                HoraEntrada = DateTime.Now.TimeOfDay, // Converte para TimeSpan
+                // Inicializar Saidas e Almoço com TimeSpan.Zero ou deixar como default (que é Zero)
+                // TimeSpan.Zero indica que ainda não foi registrado
+                HoraSaida = TimeSpan.Zero,
+                EntradaAlmoco = TimeSpan.Zero,
+                SaidaAlmoco = TimeSpan.Zero
             };
 
             _context.Horarios.Add(registo);
@@ -53,17 +70,32 @@
         [HttpPost]
         public async Task<IActionResult> RegistarSaida()
         {
-            var utilizadorId = User.FindFirstValue(ClaimTypes.NameIdentifier);  // Obtém o ID do utilizador autenticado
+            var utilizadorId = GetCurrentUserId();
+            if (string.IsNullOrEmpty(utilizadorId))
+            {
+                return Unauthorized("Utilizador não autenticado.");
+            }
 
-            var registo = _context.Horarios
-                .FirstOrDefault(r => r.UtilizadorId == long.Parse(utilizadorId) && r.Data.Date == DateTime.Today.Date && r.HoraSaida == DateTime.MinValue);
+            var hoje = DateTime.Today;
+
+            // Procura um registo de entrada aberto para hoje
+            var registo = await _context.Horarios
+                .FirstOrDefaultAsync(r => r.UtilizadorId == utilizadorId &&
+                                       r.Data.Date == hoje &&
+                                       r.HoraSaida == TimeSpan.Zero); // Verifica se a saída ainda não foi registrada
 
             if (registo == null)
             {
-                return BadRequest("Você não registrou a entrada para hoje.");
+                return BadRequest("Não foi encontrado um registo de entrada aberto para hoje ou a saída já foi registrada.");
             }
 
-            registo.HoraSaida = DateTime.Now;  // Atualiza a hora de saída
+            // Verifica se já saiu para almoço e ainda não voltou
+            if (registo.SaidaAlmoco != TimeSpan.Zero && registo.EntradaAlmoco == TimeSpan.Zero)
+            {
+                return BadRequest("Você precisa registrar a entrada do almoço antes de registrar a saída do dia.");
+            }
+
+            registo.HoraSaida = DateTime.Now.TimeOfDay; // Atualiza a hora de saída
 
             _context.Horarios.Update(registo);
             await _context.SaveChangesAsync();
@@ -75,17 +107,36 @@
         [HttpPost]
         public async Task<IActionResult> RegistarSaidaAlmoco()
         {
-            var utilizadorId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+            var utilizadorId = GetCurrentUserId();
+            if (string.IsNullOrEmpty(utilizadorId))
+            {
+                return Unauthorized("Utilizador não autenticado.");
+            }
 
-            var registo = _context.Horarios
-                .FirstOrDefault(r => r.UtilizadorId == long.Parse(utilizadorId) && r.Data.Date == DateTime.Today.Date);
+            var hoje = DateTime.Today;
+
+            var registo = await _context.Horarios
+                .FirstOrDefaultAsync(r => r.UtilizadorId == utilizadorId && r.Data.Date == hoje);
 
             if (registo == null)
             {
                 return BadRequest("Você não registrou a entrada para hoje.");
             }
+            if (registo.HoraEntrada == TimeSpan.Zero) // Se a entrada não foi feita
+            {
+                return BadRequest("Você precisa registrar a entrada do dia primeiro.");
+            }
+            if (registo.SaidaAlmoco != TimeSpan.Zero)
+            {
+                return BadRequest("Você já registrou a saída para o almoço hoje.");
+            }
+            if (registo.HoraSaida != TimeSpan.Zero)
+            {
+                return BadRequest("Você já registrou a saída do dia. Não é possível registrar saída para almoço.");
+            }
 
-            registo.SaidaAlmoco = DateTime.Now;  // Registra a saída para o almoço
+
+            registo.SaidaAlmoco = DateTime.Now.TimeOfDay;
 
             _context.Horarios.Update(registo);
             await _context.SaveChangesAsync();
@@ -97,17 +148,35 @@
         [HttpPost]
         public async Task<IActionResult> RegistarEntradaAlmoco()
         {
-            var utilizadorId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+            var utilizadorId = GetCurrentUserId();
+            if (string.IsNullOrEmpty(utilizadorId))
+            {
+                return Unauthorized("Utilizador não autenticado.");
+            }
+            var hoje = DateTime.Today;
 
-            var registo = _context.Horarios
-                .FirstOrDefault(r => r.UtilizadorId == long.Parse(utilizadorId) && r.Data.Date == DateTime.Today.Date);
+            var registo = await _context.Horarios
+                .FirstOrDefaultAsync(r => r.UtilizadorId == utilizadorId && r.Data.Date == hoje);
 
             if (registo == null)
             {
-                return BadRequest("Você não registrou a saída para o almoço.");
+                // Este caso não deveria acontecer se a lógica de SaidaAlmoco for seguida
+                return BadRequest("Registro de ponto diário não encontrado.");
+            }
+            if (registo.SaidaAlmoco == TimeSpan.Zero)
+            {
+                return BadRequest("Você não registrou a saída para o almoço ainda.");
+            }
+            if (registo.EntradaAlmoco != TimeSpan.Zero)
+            {
+                return BadRequest("Você já registrou a entrada de volta do almoço hoje.");
+            }
+            if (registo.HoraSaida != TimeSpan.Zero)
+            {
+                return BadRequest("Você já registrou a saída do dia. Não é possível registrar entrada de almoço.");
             }
 
-            registo.EntradaAlmoco = DateTime.Now;  // Registra a entrada de volta do almoço
+            registo.EntradaAlmoco = DateTime.Now.TimeOfDay;
 
             _context.Horarios.Update(registo);
             await _context.SaveChangesAsync();

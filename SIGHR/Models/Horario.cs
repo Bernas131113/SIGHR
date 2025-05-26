@@ -1,33 +1,35 @@
-﻿namespace SIGHR.Models
-{
-    using System;
-    using System.ComponentModel.DataAnnotations;
-    using System.ComponentModel.DataAnnotations.Schema;
+﻿// Models/Horario.cs
+using System;
+using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations.Schema;
+using SIGHR.Areas.Identity.Data; // Adicione este using para SIGHRUser
 
+namespace SIGHR.Models
+{
     public class Horario
     {
         public long Id { get; set; }
 
         [Required]
-        public long UtilizadorId { get; set; }
+        public required string UtilizadorId { get; set; } // Deve ser string
 
         [Required]
         public DateTime Data { get; set; }
 
         [Required]
-        public DateTime HoraEntrada { get; set; }
+        public TimeSpan HoraEntrada { get; set; }
 
         [Required]
-        public DateTime HoraSaida { get; set; }
+        public TimeSpan HoraSaida { get; set; }
 
         [Required]
-        public DateTime EntradaAlmoco { get; set; }
+        public TimeSpan EntradaAlmoco { get; set; }
 
         [Required]
-        public DateTime SaidaAlmoco { get; set; }
+        public TimeSpan SaidaAlmoco { get; set; }
 
+        // Propriedade de navegação para o SIGHRUser
         [ForeignKey("UtilizadorId")]
-        public Utilizadores ?Utilizadores { get; set; }
+        public virtual SIGHRUser? User { get; set; } // NOME DA PROPRIEDADE DE NAVEGAÇÃO: "User"
     }
-
 }

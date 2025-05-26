@@ -7,7 +7,14 @@
     box-sizing: border-box;
 }
 
+.container {
 
+    border-radius: 10px; /* Cantos arredondados */
+    text-align: center;
+    width: 90%; /* Largura responsiva */
+    max-width: 480px; /* Largura máxima para o formulário de login */
+    margin: 20px auto; /* Centraliza e adiciona margem */
+}
 body {
     font-family: 'Roboto', Arial, sans-serif;
     background: linear-gradient(to bottom, #a7c7f1, #81a6d1); /* Cor suave de fundo em tons de azul */
@@ -145,6 +152,16 @@ label {
     }
 
 /* Conteúdo Principal */
+#admin-login-area {
+    width: 100%;
+    max-width: 1200px;
+    background: #ffffff;
+    box-shadow: 0 8px 30px rgba(0, 0, 0, 0.2);
+    border-radius: 12px;
+    padding: 20px;
+    margin-top: 20px;
+    animation: fadeIn 0.8s ease-in-out;
+}
 #registo-ponto-area {
     width: 100%;
     max-width: 1200px;
@@ -453,5 +470,7 @@ select {
         font-size: 18px;
         text-align: center;
         font-weight: bold;
+
     }
+
 }

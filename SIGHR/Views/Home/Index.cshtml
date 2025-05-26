@@ -1,8 +1,55 @@
-﻿@{
-    ViewData["Title"] = "Home Page";
-}
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Bem-vindo ao SIGHR</title>
+    <link rel="stylesheet" href="~/css/login.css" asp-append-version="true" />
+    <style>
+        /* Estilos inline apenas para esta página, se necessário para garantir o text-align */
+        #registo-ponto-area {
+            text-align: center;
+            margin-left: auto;
+            margin-right: auto;
+            margin-bottom: 15px; /* Garante que o conteúdo inline ou inline-block seja centralizado */
+        }
+        /* Se os botões forem display:block e você quer que eles sejam menores e centralizados: */
+        /*
+                #registo-ponto-area .btn {
+                    display: block;
+                    width: 80%; /* Ou um max-width fixo */
+        /* Para espaçamento */
+        /* }
+                */
+        /* Se os botões já são inline-block e você só quer mais espaço entre eles */
+        #registo-ponto-area .btn {
+            margin-top: 10px; /* Adiciona um pouco de espaço acima de cada botão */
+            margin-bottom: 10px; /* Adiciona um pouco de espaço abaixo de cada botão */
+            /* Se eles estiverem lado a lado e você quiser empilhá-los: */
+            /* display: block; */
+            /* margin-left: auto; */
+            /* margin-right: auto; */
+        }
 
-<div class="text-center">
-    <h1 class="display-4">Welcome</h1>
-    <p>Learn about <a href="https://learn.microsoft.com/aspnet/core">building Web apps with ASP.NET Core</a>.</p>
-</div>
+    </style>
+</head>
+<body>
+    <div class="content-wrapper">
+        <div id="registo-ponto-area">
+            <h1>Bem-vindo ao SIGHR</h1>
+            <p>Selecione o seu tipo de utilizador para continuar:</p>
+
+            <!-- Os botões aqui. Se .btn os torna inline-block,
+                 o text-align: center no #registo-ponto-area os centralizará. -->
+            <a href="~/Identity/Account/AdminLogin" class="btn btn-green">Administrador</a>
+            <br /> <!-- Adiciona quebra de linha se forem inline-block e você os quer empilhados -->
+            <a href="~/Office/Login" class="btn btn-red">Funcionário de Escritório</a>
+            <br /> <!-- Adiciona quebra de linha -->
+            <a href="~/Identity/Account/Login" class="btn btn-blue">Colaborador</a>
+        </div>
+    </div>
+
+
+    <script src="~/js/site.js" asp-append-version="true"></script>
+</body>
+</html>
