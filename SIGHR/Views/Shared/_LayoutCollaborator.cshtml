@@ -1,0 +1,72 @@
+﻿@{
+    // var userName = User.Identity?.IsAuthenticated == true ? (User.FindFirst("FullName")?.Value ?? User.Identity.Name) : "Colaborador";
+}
+<!DOCTYPE html>
+<html lang="pt">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>@ViewData["Title"] - Área do Colaborador SIGHR</title>
+    <link rel="stylesheet" href="~/css/adminarea.css" asp-append-version="true">
+    @await RenderSectionAsync("Styles", required: false)
+</head>
+<body>
+    <div class="sidebar">
+        <div class="logo">
+            <h4>Área do Colaborador</h4>
+        </div>
+        <nav>
+            <ul>
+                <li class="@(IsRouteActive(ViewContext, "Collaborator", "Dashboard") ? "active" : "")">
+                    <a asp-controller="Collaborator" asp-action="Dashboard">Meu Painel</a>
+                </li>
+                <li class="@(IsPageActive(ViewContext, "/RegistoPonto") ? "active" : "")">
+                    <a asp-page="/RegistoPonto">Registo de Ponto</a>
+                </li>
+                <li class="@(IsControllerActive(ViewContext, "MinhasFaltas") ? "active" : "")">
+                    <a asp-controller="MinhasFaltas" asp-action="Index">Minhas Faltas</a>
+                </li>
+                <li class="@(IsControllerActive(ViewContext, "MinhasEncomendas") ? "active" : "")">
+                    <a asp-controller="MinhasEncomendas" asp-action="Index">Minhas Encomendas</a>
+                </li>
+                <li>
+                    <a asp-controller="MaterialRequest" asp-action="Create">Pedir Material</a>
+                </li>
+                <li>
+                    <a asp-controller="FaltaRequest" asp-action="Create">Registar Falta</a>
+                </li>
+            </ul>
+        </nav>
+        <form asp-controller="Collaborator" asp-action="Logout" method="post" id="collaboratorLogoutForm">
+            <button type="submit" class="sair-btn">Sair</button>
+        </form>
+    </div>
+    <main>
+        @RenderBody()
+    </main>
+    @await RenderSectionAsync("Scripts", required: false)
+</body>
+</html>
+
+@functions {
+    public static bool IsPageActive(ViewContext viewContext, string pagePath)
+    {
+        var currentPage = viewContext.RouteData.Values["page"]?.ToString();
+        return currentPage != null && currentPage.Equals(pagePath, StringComparison.OrdinalIgnoreCase);
+    }
+
+    public static bool IsControllerActive(ViewContext viewContext, string controllerName)
+    {
+        var currentController = viewContext.RouteData.Values["controller"]?.ToString();
+        return currentController != null && currentController.Equals(controllerName, StringComparison.OrdinalIgnoreCase);
+    }
+
+    // Função mais completa para verificar Controller e Action
+    public static bool IsRouteActive(ViewContext viewContext, string controllerName, string actionName)
+    {
+        var currentController = viewContext.RouteData.Values["controller"]?.ToString();
+        var currentAction = viewContext.RouteData.Values["action"]?.ToString();
+        return currentController != null && currentController.Equals(controllerName, StringComparison.OrdinalIgnoreCase) &&
+               currentAction != null && currentAction.Equals(actionName, StringComparison.OrdinalIgnoreCase);
+    }
+}

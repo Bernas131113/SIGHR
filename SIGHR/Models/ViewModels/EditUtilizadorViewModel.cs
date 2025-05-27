@@ -17,7 +17,9 @@ namespace SIGHR.Models.ViewModels
         [Display(Name = "Nome Completo")]
         public string? NomeCompleto { get; set; }
 
-        [Required]
+        [Required(ErrorMessage = "O PIN é obrigatório.")]
+        [RegularExpression(@"^\d{4}$", ErrorMessage = "O PIN deve conter exatamente 4 números.")]
+        [Display(Name = "PIN")]
         public int PIN { get; set; }
 
         [Display(Name = "Tipo/Role")]

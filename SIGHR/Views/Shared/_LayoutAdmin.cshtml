@@ -1,0 +1,58 @@
+﻿<!DOCTYPE html>
+<html lang="pt">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>@ViewData["Title"] - SIGHR Admin</title>
+    @* Se você tiver um favicon ou apple-touch-icon comum para a área admin: *@
+    @* <link rel="apple-touch-icon" href="~/images/admin-icon.png" asp-append-version="true"> *@
+
+    @* Referência ao seu CSS de administração *@
+    <link rel="stylesheet" href="~/css/adminarea.css" asp-append-version="true">
+
+    @* Se você usa Bootstrap ou outros CSS comuns na área de admin, adicione-os aqui *@
+    <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.min.css" />
+
+    @* Permite que as views filhas adicionem seus próprios estilos *@
+    @await RenderSectionAsync("Styles", required: false)
+</head>
+<body>
+    <div class="sidebar">
+
+        <nav>
+            <ul>
+                <li class="@(ViewContext.RouteData.Values["controller"]?.ToString() == "Admin" && (ViewContext.RouteData.Values["action"]?.ToString() == "Index" || string.IsNullOrEmpty(ViewContext.RouteData.Values["action"]?.ToString())) ? "active" : "")">
+                    <a asp-controller="Admin" asp-action="Index">Registo de Entradas</a>
+                </li>
+                <li class="@(ViewContext.RouteData.Values["controller"]?.ToString() == "Utilizadores" ? "active" : "")">
+                    <a asp-controller="Utilizadores" asp-action="Index">Gestão de Utilizadores</a>
+                </li>
+                <li class="@(ViewContext.RouteData.Values["controller"]?.ToString() == "Encomendas" ? "active" : "")">
+                    <a asp-controller="Encomendas" asp-action="Index">Encomendas</a>
+                </li>
+                <li class="@(ViewContext.RouteData.Values["controller"]?.ToString() == "Faltas" ? "active" : "")">
+                    <a asp-controller="Faltas" asp-action="Index">Faltas</a>
+                </li>
+                @* Adicione outros links de admin aqui *@
+            </ul>
+        </nav>
+        <form asp-controller="Admin" asp-action="Logout" method="post" id="adminLayoutLogoutForm">
+            <button type="submit" class="sair-btn">Sair</button>
+        </form>
+    </div>
+
+    <main role="main" class="admin-main-content">
+        @* Adicionada classe para estilização se necessário *@
+        @* O conteúdo específico de cada página de admin será renderizado aqui *@
+        @RenderBody()
+    </main>
+
+    @* Scripts comuns da área de admin podem ir aqui *@
+    @* <script src="~/lib/jquery/dist/jquery.min.js"></script> *@
+    @* <script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script> *@
+    @* <script src="~/js/admin-global.js" asp-append-version="true"></script> *@
+
+    @* Permite que as views filhas adicionem seus próprios scripts *@
+    @await RenderSectionAsync("Scripts", required: false)
+</body>
+</html>

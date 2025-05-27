@@ -1,0 +1,62 @@
+﻿@model SIGHR.Models.ViewModels.UtilizadorViewModel
+
+@{
+    ViewData["Title"] = "Detalhes do Utilizador";
+    Layout = "_LayoutAdmin";
+}
+
+<h1>@ViewData["Title"]</h1>
+
+<div>
+    <h4>@Model.NomeCompleto (@Model.UserName)</h4>
+    <hr />
+    <dl class="row">
+        <dt class="col-sm-3">
+            @Html.DisplayNameFor(model => model.UserName)
+        </dt>
+        <dd class="col-sm-9">
+            @Html.DisplayFor(model => model.UserName)
+        </dd>
+        <dt class="col-sm-3">
+            @Html.DisplayNameFor(model => model.Email)
+        </dt>
+        <dd class="col-sm-9">
+            @Html.DisplayFor(model => model.Email)
+        </dd>
+        <dt class="col-sm-3">
+            @Html.DisplayNameFor(model => model.NomeCompleto)
+        </dt>
+        <dd class="col-sm-9">
+            @Html.DisplayFor(model => model.NomeCompleto)
+        </dd>
+        <dt class="col-sm-3">
+            @Html.DisplayNameFor(model => model.PIN)
+        </dt>
+        <dd class="col-sm-9">
+            @Html.DisplayFor(model => model.PIN)
+        </dd>
+        <dt class="col-sm-3">
+            @Html.DisplayNameFor(model => model.Tipo)
+        </dt>
+        <dd class="col-sm-9">
+            @Html.DisplayFor(model => model.Tipo)
+        </dd>
+        <dt class="col-sm-3">
+            Roles do Identity
+        </dt>
+        <dd class="col-sm-9">
+            @if (Model.Roles != null && Model.Roles.Any())
+            {
+                @string.Join(", ", Model.Roles)
+            }
+            else
+            {
+                <text>Nenhum</text>
+            }
+        </dd>
+    </dl>
+</div>
+<div class="mt-3">
+    <a asp-action="Edit" asp-route-id="@Model.Id" class="btn btn-primary">Editar</a> |
+    <a asp-action="Index" class="btn btn-secondary">Voltar à Lista</a>
+</div>

@@ -1,0 +1,65 @@
+﻿@model SIGHR.Models.ViewModels.EditUtilizadorViewModel
+
+@{
+    ViewData["Title"] = "Editar Utilizador";
+    Layout = "_LayoutAdmin";
+}
+
+<h1>@ViewData["Title"]</h1>
+<h4>Utilizador: @Model.UserName</h4>
+<hr />
+<div class="row">
+    <div class="col-md-6">
+        <form asp-action="Edit" asp-route-id="@Model.Id">
+            <div asp-validation-summary="ModelOnly" class="text-danger"></div>
+            <input type="hidden" asp-for="Id" />
+
+            <div class="mb-3">
+                <label asp-for="UserName" class="form-label"></label>
+                <input asp-for="UserName" class="form-control" />
+                <span asp-validation-for="UserName" class="text-danger"></span>
+            </div>
+            <div class="mb-3">
+                <label asp-for="Email" class="form-label"></label>
+                <input asp-for="Email" class="form-control" />
+                <span asp-validation-for="Email" class="text-danger"></span>
+            </div>
+            <div class="mb-3">
+                <label asp-for="NomeCompleto" class="form-label"></label>
+                <input asp-for="NomeCompleto" class="form-control" />
+                <span asp-validation-for="NomeCompleto" class="text-danger"></span>
+            </div>
+            <div class="mb-3">
+                <label asp-for="PIN" class="form-label"></label>
+                <input asp-for="PIN" type="text" class="form-control" placeholder="----" maxlength="4" pattern="\d{4}" title="O PIN deve conter exatamente 4 números." />
+                <span asp-validation-for="PIN" class="text-danger"></span>
+            </div>
+          
+            <div class="mb-3">
+                <label asp-for="Tipo" class="form-label"></label>
+                @if (ViewBag.Roles != null)
+                {
+                    <select asp-for="Tipo" class="form-select" asp-items="ViewBag.Roles">
+                        <option value="">-- Selecione um Tipo/Role --</option>
+                    </select>
+                }
+                else
+                {
+                    <input asp-for="Tipo" class="form-control" />
+                }
+                <span asp-validation-for="Tipo" class="text-danger"></span>
+            </div>
+            @* Nota: A alteração de senha geralmente é um fluxo separado por razões de segurança *@
+            <div class="form-group mt-3">
+                <button type="submit" class="btn btn-primary">Salvar Alterações</button>
+                <a asp-action="Index" class="btn btn-secondary">Cancelar</a>
+            </div>
+        </form>
+    </div>
+</div>
+
+@section Scripts {
+    @{
+        await Html.RenderPartialAsync("_ValidationScriptsPartial");
+    }
+}

@@ -1,83 +1,58 @@
 ﻿@{
-    ViewData["Title"] = "Painel do Administrador";
-    // Se esta página não usa um layout compartilhado (_Layout.cshtml),
-    // você pode definir Layout = null; aqui também, ou criar um _LayoutAdmin.cshtml.
-    // Layout = "_LayoutAdmin"; // Exemplo
-    // Ou se você quer que ela seja completamente independente (como parece ser o caso):
-    Layout = null;
+    ViewData["Title"] = "Painel do Administrador - Registo de Entradas"; // Título mais específico
+    Layout = "_LayoutAdmin"; // Especifica o layout
 }
 
-<!DOCTYPE html>
-<html lang="pt">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    @* Assumindo que a imagem está na raiz de wwwroot ou em wwwroot/images *@
-    
-    <title>@ViewData["Title"]</title>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.17.2/xlsx.full.min.js"></script>
-    @* Caminho correto para o CSS *@
-    <link rel="stylesheet" href="~/css/adminarea.css" asp-append-version="true">
-</head>
+@* O conteúdo da tag <main> do _LayoutAdmin.cshtml será substituído por isto: *@
 
-<body>
-    <div class="sidebar">
+<style>
+    thead th {
+        color: black; /* Ou #000000 */
+    }
 
-        <nav>
-            <ul>
-                <li class="active">Registo de Entradas</li>
-                @* Considere usar Tag Helpers para navegação em ASP.NET Core *@
-                <li><a asp-controller="AlgumController" asp-action="Encomendas">Encomendas</a></li>
-                <li><a asp-page="/AlgumaPagina/Faltas">Faltas</a></li>
-            </ul>
-        </nav>
-        @* Para o botão Sair, use um formulário POST para uma action de Logout no AdminController *@
-        <form asp-controller="Admin" asp-action="Logout" method="post" id="adminLogoutForm">
-            <button type="submit" class="sair-btn">Sair</button>
-        </form>
-        @* Ou se preferir o onclick, mas o POST é mais seguro para logout:
-           <button class="sair-btn" onclick="document.getElementById('adminLogoutForm').submit();">Sair</button>
-        *@
+
+</style>
+
+<h1>Área de Administração</h1> @* Pode ser redundante se o layout já tiver um título geral *@
+<div class="content">
+    <div class="header">
+        <h2>Registo de Entradas</h2>
+        <div class="action-buttons">
+            <button onclick="downloadExcel()" class="download-btn">Download Excel</button>
+            <button id="editar-btn" class="edit-btn" onclick="habilitarEdicao()">Editar</button>
+            <button id="concluir-btn" class="edit-btn" onclick="salvarEdicoes()" style="display: none;">Concluido</button>
+            <button id="btn-excluir" class="delete-btn" onclick="ativarModoExclusao()">Excluir</button>
+        </div>
     </div>
 
-    <main>
-        <h1>Área de Administração</h1>
-        <div class="content">
-            <div class="header">
-                <h2>Registo de Entradas</h2>
-                <div class="action-buttons">
-                    <button onclick="downloadExcel()" class="download-btn">Download Excel</button>
-                    <button id="editar-btn" class="edit-btn" onclick="habilitarEdicao()">Editar</button>
-                    <button id="concluir-btn" class="edit-btn" onclick="salvarEdicoes()" style="display: none;">Concluido</button>
-                    <button id="btn-excluir" class="delete-btn" onclick="ativarModoExclusao()">Excluir</button>
-                </div>
-            </div>
+    <div class="search-bar">
+        <input type="text" id="filtro-nome" placeholder="Pesquisar por nome">
+        <input type="date" id="filtro-data" placeholder="Pesquisar por data (DD/MM/AAAA)">
+        <button class="filter-btn" onclick="aplicarFiltros()">Filtrar</button>
+    </div>
+    <div class="table-container">
+        <table id="tabela-horariosadmin" class="table admin-table">
+            @* Adicionada classe 'admin-table' *@
+            <thead>
+                <tr>
+                    <th>Nome</th>
+                    <th>Data</th>
+                    <th>Hora Entrada</th>
+                    <th>Entrada Almoço</th>
+                    <th>Saída Almoço</th>
+                    <th>Hora Saída</th>
+                    <th>Total De Horas</th>
+                    <th>Localização</th>
+                    <th></th>
+                </tr>
+            </thead>
+            <tbody></tbody>
+        </table>
+    </div>
+</div>
 
-            <div class="search-bar">
-                <input type="text" id="filtro-nome" placeholder="Pesquisar por nome">
-                <input type="date" id="filtro-data" placeholder="Pesquisar por data (DD/MM/AAAA)">
-                <button class="filter-btn" onclick="aplicarFiltros()">Filtrar</button>
-            </div>
-            <div class="table-container">
-                <table id="tabela-horariosadmin">
-                    <thead>
-                        <tr>
-                            <th>Nome</th>
-                            <th>Data</th>
-                            <th>Hora Entrada</th>
-                            <th>Entrada Almoço</th>
-                            <th>Saída Almoço</th>
-                            <th>Hora Saída</th>
-                            <th>Total De Horas</th>
-                            <th>Localização</th>
-                            <th></th>
-                        </tr>
-                    </thead>
-                    <tbody></tbody>
-                </table>
-            </div>
-        </div>
-    </main>
-
-</body>
-</html>
+@section Scripts {
+@* Se você tinha um <script src="script.js"></script> específico para esta página, coloque-o aqui *@
+@* <script src="~/js/adminDashboardScript.js" asp-append-version="true"></script> *@
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.17.2/xlsx.full.min.js"></script> @* Mover scripts externos para o layout se forem comuns, ou para a seção Scripts se específicos *@
+}

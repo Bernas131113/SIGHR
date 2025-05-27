@@ -1,0 +1,103 @@
+﻿@model SIGHR.Models.ViewModels.CollaboratorDashboardViewModel
+@inject Microsoft.AspNetCore.Antiforgery.IAntiforgery Xsrf // Injeta o serviço Antiforgery
+
+@{
+    ViewData["Title"] = "Minha Área";
+    Layout = "_LayoutCollaborator"; // Usa o layout do colaborador
+}
+
+@functions {
+    // Função para obter o token, será chamada abaixo para popular o input oculto
+    public string? GetAntiXsrfRequestToken()
+    {
+        if (Context == null) return null; // Segurança, Context pode ser nulo em alguns cenários de pré-renderização
+        return Xsrf.GetAndStoreTokens(Context).RequestToken;
+    }
+}
+
+@* Adiciona um input oculto para armazenar o AntiForgeryToken *@
+@* Este formulário não precisa de action, é apenas um container para o token se você não tiver outro form *@
+<form method="post" style="display:none;">
+    @* Estilo para não ser visível *@
+    @Html.AntiForgeryToken() @* Esta é a forma padrão de gerar o input com o token *@
+</form>
+@* Alternativamente, se você não quiser um <form> dummy, pode usar o método GetAntiXsrfRequestToken: *@
+@* <input type="hidden" id="RequestVerificationTokenForScript" value="@GetAntiXsrfRequestToken()" /> *@
+
+
+<div class="content">
+    <div id="registo-ponto-area">
+        <h1>Bem-vindo, @(Model.NomeCompleto ?? "Colaborador")!</h1> @* Coalescência para NomeCompleto *@
+        <hr />
+
+        <div class="row">
+            <div class="col-md-6">
+                <h4>Registar Ponto</h4>
+                <div class="flex-center mb-3">
+                    <button id="btnEntrada" class="btn-custom-style btn-green-custom">Entrada</button>
+                    <button id="btnSaidaAlmoco" class="btn-custom-style btn-red-custom">Saída Almoço</button>
+                </div>
+                <div class="flex-center">
+                    <button id="btnEntradaAlmoco" class="btn-custom-style btn-green-custom">Entrada Almoço</button>
+                    <button id="btnSaida" class="btn-custom-style btn-red-custom">Saída</button>
+                </div>
+                <div id="status-messages-ponto" class="mt-2">
+                    <div id="loading-message-ponto" style="display: none;">A processar...</div>
+                    <div id="success-message-ponto" class="alert alert-success" style="display: none;"></div>
+                    <div id="error-message-ponto" class="alert alert-danger" style="display: none;"></div>
+                </div>
+            </div>
+            <div class="col-md-6">
+                <h4>Outras Ações</h4>
+                <div class="flex-center">
+                    <a asp-controller="MaterialRequest" asp-action="Create" class="btn-custom-style btn-blue-custom">Pedir Material</a>
+                    <a asp-controller="FaltaRequest" asp-action="Create" class="btn-custom-style btn-blue-custom">Registar Falta</a>
+                </div>
+            </div>
+        </div>
+        <hr />
+
+        <h4>Ponto de Hoje (@DateTime.Today.ToString("dd/MM/yyyy"))</h4>
+        @if (Model.HorarioDeHoje != null)
+        {
+            <p>Entrada: @(Model.HorarioDeHoje.HoraEntrada == TimeSpan.Zero ? "--:--" : Model.HorarioDeHoje.HoraEntrada.ToString(@"hh\:mm"))</p>
+            <p>Saída Almoço: @(Model.HorarioDeHoje.SaidaAlmoco == TimeSpan.Zero ? "--:--" : Model.HorarioDeHoje.SaidaAlmoco.ToString(@"hh\:mm"))</p>
+            <p>Entrada Almoço: @(Model.HorarioDeHoje.EntradaAlmoco == TimeSpan.Zero ? "--:--" : Model.HorarioDeHoje.EntradaAlmoco.ToString(@"hh\:mm"))</p>
+            <p>Saída: @(Model.HorarioDeHoje.HoraSaida == TimeSpan.Zero ? "--:--" : Model.HorarioDeHoje.HoraSaida.ToString(@"hh\:mm"))</p>
+        }
+        else
+        {
+            <p>Nenhum registo de ponto para hoje.</p>
+        }
+        <hr />
+
+        <h4>Minhas Últimas Faltas</h4>
+        @if (Model.UltimasFaltas != null && Model.UltimasFaltas.Any())
+        {
+            <ul>
+                @foreach (var falta in Model.UltimasFaltas)
+                {
+                    <li>@falta.DataFalta.ToString("dd/MM/yyyy"): @(falta.Motivo ?? "Motivo não especificado")</li>
+                }
+            </ul>
+        }
+        else
+        {
+            <p>Nenhuma falta registada.</p>
+        }
+    </div>
+</div>
+
+@section Scripts {
+    @* Passando as URLs das actions para o JavaScript *@
+    <script>
+        const urls = {
+            registarEntrada: '@Url.Action("RegistarEntrada", "RegistoPonto")',
+            registarSaidaAlmoco: '@Url.Action("RegistarSaidaAlmoco", "RegistoPonto")',
+            registarEntradaAlmoco: '@Url.Action("RegistarEntradaAlmoco", "RegistoPonto")',
+            registarSaida: '@Url.Action("RegistarSaida", "RegistoPonto")',
+            getPontoDoDia: '@Url.Action("GetPontoDoDia", "RegistoPonto")'
+        };
+    </script>
+    <script src="~/js/registoPontoColaborador.js" asp-append-version="true"></script>
+}

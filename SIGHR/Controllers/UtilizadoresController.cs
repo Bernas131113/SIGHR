@@ -1,5 +1,5 @@
 ﻿// Controllers/UtilizadoresController.cs
-namespace SIGHR.Controllers; // Usando namespace com escopo de arquivo
+namespace SIGHR.Controllers;
 
 // Usings devem vir DEPOIS da declaração de namespace com escopo de arquivo
 using System;
@@ -11,10 +11,11 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Rendering;
 using Microsoft.EntityFrameworkCore;
-using SIGHR.Areas.Identity.Data; // Para SIGHRContext e SIGHRUser
+using SIGHR.Areas.Identity.Data;
 using SIGHR.Models.ViewModels; // Para seus ViewModels
 
-[Authorize(Roles = "Admin")] // Apenas usuários com o Role "Admin" podem acessar
+// CORREÇÃO PRINCIPAL AQUI:
+[Authorize(Roles = "Admin", AuthenticationSchemes = "AdminLoginScheme")]
 public class UtilizadoresController : Controller
 {
     private readonly SIGHRContext _context;
@@ -40,13 +41,13 @@ public class UtilizadoresController : Controller
         {
             userViewModels.Add(new UtilizadorViewModel
             {
-                Id = user.Id, // user.Id é string (não nulo), UtilizadorViewModel.Id é 'required string'
-                UserName = user.UserName, // UserName pode ser nulo em IdentityUser, mas UserManager geralmente garante que não.
-                Email = user.Email,       // Email pode ser nulo
-                NomeCompleto = user.NomeCompleto, // string?
+                Id = user.Id,
+                UserName = user.UserName ?? string.Empty, // Garante não nulo para ViewModel se necessário
+                Email = user.Email ?? string.Empty,       // Garante não nulo para ViewModel se necessário
+                NomeCompleto = user.NomeCompleto,         // string? é ok se ViewModel também é string?
                 PIN = user.PIN,
-                Tipo = user.Tipo, // string?
-                Roles = await _userManager.GetRolesAsync(user) // Obtém a lista de roles
+                Tipo = user.Tipo,                         // string? é ok se ViewModel também é string?
+                Roles = await _userManager.GetRolesAsync(user)
             });
         }
         return View(userViewModels);
@@ -66,34 +67,30 @@ public class UtilizadoresController : Controller
             return NotFound();
         }
 
-        // Carregar dados relacionados explicitamente se necessário para a view Details
-        // Se as coleções (Horarios, etc.) estão em SIGHRUser e você quer exibi-las:
         var userWithIncludes = await _context.Users
-            .Include(u => u.Horarios) // Exemplo
-            .Include(u => u.Faltas)   // Exemplo
-            .Include(u => u.Encomendas) // Exemplo
+            .Include(u => u.Horarios)
+            .Include(u => u.Faltas)
+            .Include(u => u.Encomendas)
             .FirstOrDefaultAsync(u => u.Id == id);
 
-        if (userWithIncludes == null) // Verificação extra, embora user já tenha sido encontrado
+        if (userWithIncludes == null)
         {
-            return NotFound();
+            return NotFound(); // Embora improvável se user foi encontrado acima
         }
 
         var viewModel = new UtilizadorViewModel
         {
             Id = userWithIncludes.Id,
-            UserName = userWithIncludes.UserName,
-            Email = userWithIncludes.Email,
+            UserName = userWithIncludes.UserName ?? string.Empty,
+            Email = userWithIncludes.Email ?? string.Empty,
             NomeCompleto = userWithIncludes.NomeCompleto,
             PIN = userWithIncludes.PIN,
             Tipo = userWithIncludes.Tipo,
             Roles = await _userManager.GetRolesAsync(userWithIncludes)
-            // Se você adicionou as coleções ao UtilizadorViewModel:
-            // Horarios = userWithIncludes.Horarios,
+            // Horarios = userWithIncludes.Horarios, // Descomente se adicionado ao ViewModel
             // Faltas = userWithIncludes.Faltas,
             // Encomendas = userWithIncludes.Encomendas
         };
-
         return View(viewModel);
     }
 
@@ -107,7 +104,7 @@ public class UtilizadoresController : Controller
     // POST: Utilizadores/Create
     [HttpPost]
     [ValidateAntiForgeryToken]
-    public async Task<IActionResult> Create(CreateUtilizadorViewModel model)
+    public async Task<IActionResult> Create(CreateUtilizadorViewModel model) // Agora usa o ViewModel sem senha
     {
         if (ModelState.IsValid)
         {
@@ -115,19 +112,42 @@ public class UtilizadoresController : Controller
             {
                 UserName = model.UserName,
                 Email = model.Email,
-                NomeCompleto = model.NomeCompleto, // model.NomeCompleto é string?
+                NomeCompleto = model.NomeCompleto,
                 PIN = model.PIN,
-                Tipo = model.Tipo,                 // model.Tipo é string?
-                EmailConfirmed = true              // Considere a necessidade de confirmação de email
+                Tipo = model.Tipo, // Esta será a propriedade 'Tipo' no SIGHRUser e também o nome do Role do Identity
+                EmailConfirmed = true // Defina como true se não houver fluxo de confirmação de email
             };
 
-            var result = await _userManager.CreateAsync(user, model.Password);
+            // Gerar uma senha dummy forte e aleatória, pois CreateAsync requer uma.
+            // Esta senha não será usada pelo usuário se ele logar via PIN.
+            string dummyPassword = Guid.NewGuid().ToString() + "Aa1" + Guid.NewGuid().ToString().Substring(0, 4) + "!";
+
+            var result = await _userManager.CreateAsync(user, dummyPassword);
             if (result.Succeeded)
             {
+                // Adicionar ao Role do Identity baseado na propriedade Tipo/Role do ViewModel
                 if (!string.IsNullOrEmpty(model.Tipo) && await _roleManager.RoleExistsAsync(model.Tipo))
                 {
                     await _userManager.AddToRoleAsync(user, model.Tipo);
                 }
+                else if (!string.IsNullOrEmpty(model.Tipo))
+                {
+                    // Opcional: Criar o role se ele não existir E você quiser essa funcionalidade
+                    // var roleResult = await _roleManager.CreateAsync(new IdentityRole(model.Tipo));
+                    // if (roleResult.Succeeded)
+                    // {
+                    //    await _userManager.AddToRoleAsync(user, model.Tipo);
+                    // }
+                    // else
+                    // {
+                    //    // Logar erro na criação do role
+                    // }
+                    ModelState.AddModelError("Tipo", $"O Role '{model.Tipo}' não existe. Crie-o primeiro ou selecione um existente.");
+                    // Re-popular ViewBag.Roles antes de retornar a view com erro
+                    ViewBag.Roles = new SelectList(await _roleManager.Roles.Select(r => r.Name).ToListAsync(), model.Tipo);
+                    return View(model);
+                }
+
                 return RedirectToAction(nameof(Index));
             }
             foreach (var error in result.Errors)
@@ -135,6 +155,7 @@ public class UtilizadoresController : Controller
                 ModelState.AddModelError(string.Empty, error.Description);
             }
         }
+        // Se ModelState inválido, re-popular ViewBag.Roles
         ViewBag.Roles = new SelectList(await _roleManager.Roles.Select(r => r.Name).ToListAsync(), model.Tipo);
         return View(model);
     }
@@ -157,11 +178,11 @@ public class UtilizadoresController : Controller
         var model = new EditUtilizadorViewModel
         {
             Id = user.Id,
-            UserName = user.UserName ?? string.Empty, // Garante que não é nulo para o ViewModel se UserName fosse string
-            Email = user.Email ?? string.Empty,       // Garante que não é nulo para o ViewModel se Email fosse string
-            NomeCompleto = user.NomeCompleto, // string? é OK
+            UserName = user.UserName ?? string.Empty,
+            Email = user.Email ?? string.Empty,
+            NomeCompleto = user.NomeCompleto,
             PIN = user.PIN,
-            Tipo = user.Tipo ?? userRoles.FirstOrDefault() // string? é OK, ou pega o primeiro role
+            Tipo = user.Tipo ?? userRoles.FirstOrDefault()
         };
 
         ViewBag.Roles = new SelectList(await _roleManager.Roles.Select(r => r.Name).ToListAsync(), model.Tipo);
@@ -186,36 +207,29 @@ public class UtilizadoresController : Controller
                 return NotFound("Utilizador não encontrado.");
             }
 
-            // Atualizar propriedades
-            // Se UserName é usado para login, mudar pode ter implicações.
-            // Identity normaliza UserName e Email para maiúsculas.
             user.UserName = model.UserName;
             user.Email = model.Email;
-            user.NomeCompleto = model.NomeCompleto; // model.NomeCompleto é string? user.NomeCompleto é string?
+            user.NomeCompleto = model.NomeCompleto;
             user.PIN = model.PIN;
-            user.Tipo = model.Tipo;                 // model.Tipo é string? user.Tipo é string?
+            user.Tipo = model.Tipo;
 
             var result = await _userManager.UpdateAsync(user);
             if (result.Succeeded)
             {
-                // Gerenciar Roles
                 var currentRoles = await _userManager.GetRolesAsync(user);
-                // Remover todos os roles atuais (exceto o novo, se for o mesmo)
                 foreach (var role in currentRoles)
                 {
-                    if (role != model.Tipo) // Não remove se o tipo/role selecionado for o mesmo que um existente
+                    if (role != model.Tipo)
                     {
                         await _userManager.RemoveFromRoleAsync(user, role);
                     }
                 }
-                // Adicionar ao novo role, se especificado, válido e ainda não atribuído
                 if (!string.IsNullOrEmpty(model.Tipo) &&
                     await _roleManager.RoleExistsAsync(model.Tipo) &&
                     !await _userManager.IsInRoleAsync(user, model.Tipo))
                 {
                     await _userManager.AddToRoleAsync(user, model.Tipo);
                 }
-
                 return RedirectToAction(nameof(Index));
             }
             foreach (var error in result.Errors)
@@ -234,7 +248,6 @@ public class UtilizadoresController : Controller
         {
             return NotFound();
         }
-
         var user = await _userManager.FindByIdAsync(id);
         if (user == null)
         {
@@ -243,8 +256,8 @@ public class UtilizadoresController : Controller
         var viewModel = new UtilizadorViewModel
         {
             Id = user.Id,
-            UserName = user.UserName,
-            Email = user.Email,
+            UserName = user.UserName ?? string.Empty,
+            Email = user.Email ?? string.Empty,
             NomeCompleto = user.NomeCompleto,
             Tipo = user.Tipo,
             Roles = await _userManager.GetRolesAsync(user)
@@ -263,25 +276,22 @@ public class UtilizadoresController : Controller
             var result = await _userManager.DeleteAsync(user);
             if (!result.Succeeded)
             {
-                // Adicionar erros ao ModelState para serem exibidos na view de Delete
                 foreach (var error in result.Errors)
                 {
                     ModelState.AddModelError(string.Empty, error.Description);
                 }
-                // Re-popular o ViewModel e retornar para a view de Delete
-                var viewModel = new UtilizadorViewModel
+                var viewModel = new UtilizadorViewModel // Repopular para a view de erro
                 {
                     Id = user.Id,
-                    UserName = user.UserName,
-                    Email = user.Email,
+                    UserName = user.UserName ?? string.Empty,
+                    Email = user.Email ?? string.Empty,
                     NomeCompleto = user.NomeCompleto,
                     Tipo = user.Tipo,
-                    Roles = await _userManager.GetRolesAsync(user) // Pode ser útil para a view de erro
+                    Roles = await _userManager.GetRolesAsync(user)
                 };
                 return View("Delete", viewModel);
             }
         }
-        // Se o usuário não foi encontrado ou a exclusão foi bem-sucedida
         return RedirectToAction(nameof(Index));
     }
 }

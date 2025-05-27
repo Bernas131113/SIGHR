@@ -1,5 +1,6 @@
-﻿@import url('https://fonts.googleapis.com/css2?family=Rubik:wght@400;500;600&display=swap');
+﻿/* wwwroot/css/adminarea.css ou login.css (ou o nome do seu arquivo CSS principal) */
 
+@import url('https://fonts.googleapis.com/css2?family=Rubik:wght@400;500;600&display=swap');
 
 * {
     margin: 0;
@@ -8,22 +9,20 @@
     font-family: 'Rubik', sans-serif;
 }
 
+html, body {
+    height: 100%;
+}
+
 body {
     display: flex;
     min-height: 100vh;
-    background-color: #f5f5f5;
-}
-.container {
-    background-color: #fff;
-    padding: 40px;
-    border-radius: 10px;
-    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
-    text-align: center;
-    width: 90%;
-    max-width: 450px;
-    margin: 20px auto;
+    background-color: #f5f5f5; /* Cor de fundo base para áreas de admin/colaborador */
+    /* Se você tiver um fundo gradiente diferente para a página de login inicial,
+       ele pode ser definido em um CSS específico para login ou sobrescrito no body da página de login.
+       Ex: background: linear-gradient(to bottom, #a7c7f1, #81a6d1); */
 }
 
+/* Layout principal com Sidebar e Main Content */
 .sidebar {
     width: 250px;
     background-color: white;
@@ -31,35 +30,133 @@ body {
     display: flex;
     flex-direction: column;
     border-right: 1px solid #e0e0e0;
+    flex-shrink: 0; /* Impede que a sidebar encolha */
 }
 
-.logo {
+    .sidebar nav {
+        flex-grow: 1; /* Faz a navegação ocupar o espaço disponível, empurrando o botão sair para baixo */
+        margin-top: 20px;
+    }
+
+        .sidebar nav ul {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+        }
+
+        .sidebar nav li {
+            margin: 5px 0;
+        }
+
+            .sidebar nav li a {
+                display: block;
+                padding: 12px 20px;
+                text-decoration: none;
+                color: #4A5568; /* Cinza escuro para texto do link */
+                border-radius: 6px;
+                transition: background-color 0.2s ease-in-out, color 0.2s ease-in-out, padding-left 0.2s ease-in-out;
+                font-weight: 500;
+            }
+
+                .sidebar nav li a:hover {
+                    background-color: #e9ecef; /* Cinza claro no hover */
+                    color: #2b6cb0; /* Azul no hover */
+                    padding-left: 25px;
+                }
+
+            .sidebar nav li.active a {
+                background-color: #007bff; /* Azul para item ativo */
+                color: white;
+                font-weight: 600;
+            }
+
+.logo { /* Para o logo na sidebar */
+    text-align: center; /* Centraliza a imagem se ela for inline-block ou tiver margin auto */
     margin-bottom: 30px;
 }
 
 .logo-img {
-    width: 100%;
-    height: auto;
+    max-width: 100%; /* Garante que a imagem não ultrapasse a largura do container */
+    height: auto; /* Mantém a proporção */
+    /* border-radius: 8px; Se o logo tiver bordas arredondadas */
 }
 
-nav ul {
-    list-style: none;
+main {
+    flex: 1; /* Faz o conteúdo principal ocupar o restante do espaço */
+    padding: 30px;
+    overflow-y: auto; /* Adiciona scroll se o conteúdo for maior que a tela */
+    background-color: #f5f5f5; /* Cor de fundo para a área de conteúdo principal */
 }
 
-nav li {
-    padding: 15px;
-    margin: 5px 0;
-    cursor: pointer;
-    border-radius: 5px;
+h1, h2, h3, h4, h5, h6 {
+    color: #333; /* Cor padrão para cabeçalhos */
+    margin-bottom: 0.75em; /* Espaçamento padrão abaixo dos cabeçalhos */
 }
 
-    nav li.active {
-        background-color: #f0f0f0;
-        font-weight: bold;
+main h1 { /* Estilo específico para o H1 principal dentro do <main> */
+    margin-bottom: 30px; /* Aumenta o espaçamento para o título principal da página */
+    text-align: center; /* Centraliza o título principal da página */
+    /* text-shadow: 0 2px 1px rgba(0,0,0,0.15), 0 4px 2px rgba(0,0,0,0.1); */ /* Sombra opcional */
+}
+
+
+.content { /* Container para o conteúdo principal dentro de <main> */
+    background-color: white;
+    padding: 25px;
+    border-radius: 10px;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.075);
+}
+
+.header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+    padding-bottom: 15px;
+    border-bottom: 1px solid #eee;
+}
+
+    .header h2 {
+        margin-bottom: 0; /* Remove margem do h2 dentro do .header */
     }
 
+
+.action-buttons button,
+.action-buttons .btn { /* Aplicar também a links estilizados como botões */
+    padding: 8px 15px; /* Reduzido um pouco o padding para botões de ação menores */
+    margin-left: 10px;
+    /* Os estilos de cor específicos (.edit-btn, .delete-btn, etc.) serão aplicados */
+}
+
+/* Estilo base compartilhado para botões com efeito 3D */
+.btn-custom-style {
+    display: inline-block;
+    padding: 10px 20px;
+    margin: 5px;
+    color: white;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    box-shadow: inset 0 1px 0 rgba(255,255,255,0.3), inset 0 0 2px rgba(255,255,255,0.3), 0 4px 0 #444444, /* Sombra 3D base escura - será sobrescrita */
+    0 5px 5px rgba(0,0,0,0.2);
+    text-shadow: 0 -1px 0 rgba(0,0,0,0.3);
+    transition: all 0.1s ease-in-out; /* Transição mais rápida para efeito de clique */
+    font-weight: 500;
+    text-decoration: none;
+    text-align: center;
+    min-width: 140px; /* Largura mínima para consistência visual */
+}
+
+    .btn-custom-style:active {
+        transform: translateY(4px); /* Efeito de pressionar */
+        box-shadow: inset 0 1px 0 rgba(255,255,255,0.3), inset 0 0 2px rgba(255,255,255,0.3), 0 0px 0 #444444, /* Sombra 3D base "achatada" - será sobrescrita */
+        0 1px 2px rgba(0,0,0,0.2);
+    }
+
+/* Botão Sair */
 .sair-btn {
     margin-top: auto;
+    margin-left: 25px;
     padding: 10px;
     background: linear-gradient(to bottom, #ff5555, #ff4444);
     color: white;
@@ -69,6 +166,8 @@ nav li {
     box-shadow: inset 0 1px 0 rgba(255,255,255,0.3), inset 0 0 2px rgba(255,255,255,0.3), 0 4px 0 #cc0000, 0 5px 5px rgba(0,0,0,0.2);
     text-shadow: 0 -1px 0 rgba(0,0,0,0.3);
     transition: all 0.1s ease;
+    width: 80%;
+    display: block;
 }
 
     .sair-btn:active {
@@ -76,43 +175,35 @@ nav li {
         box-shadow: inset 0 1px 0 rgba(255,255,255,0.3), inset 0 0 2px rgba(255,255,255,0.3), 0 0 0 #cc0000, 0 1px 2px rgba(0,0,0,0.2);
     }
 
-main {
-    flex: 1;
-    padding: 30px;
+/* Botão Verde Customizado */
+.btn-green-custom { /* Use esta classe junto com .btn-custom-style */
+    background: linear-gradient(to bottom, #63d367, #4caf50);
+    box-shadow: inset 0 1px 0 rgba(255,255,255,0.3), inset 0 0 2px rgba(255,255,255,0.3), 0 4px 0 #388e3c, 0 5px 5px rgba(0,0,0,0.2);
 }
 
-h1 {
-    margin-bottom: 50px;
-    color: #333;
-    text-align: center;
-    text-shadow: 0 2px 1px rgba(0,0,0,0.15), 0 4px 2px rgba(0,0,0,0.1);
+    .btn-green-custom:active {
+        box-shadow: inset 0 1px 0 rgba(255,255,255,0.3), inset 0 0 2px rgba(255,255,255,0.3), 0 0 0 #388e3c, 0 1px 2px rgba(0,0,0,0.2);
+    }
+
+/* Botão Vermelho Customizado */
+.btn-red-custom { /* Use esta classe junto com .btn-custom-style */
+    background: linear-gradient(to bottom, #ff7066, #f44336);
+    box-shadow: inset 0 1px 0 rgba(255,255,255,0.3), inset 0 0 2px rgba(255,255,255,0.3), 0 4px 0 #d32f2f, 0 5px 5px rgba(0,0,0,0.2);
 }
 
-.content {
-    background-color: white;
-    padding: 20px;
-    border-radius: 10px;
-    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    .btn-red-custom:active {
+        box-shadow: inset 0 1px 0 rgba(255,255,255,0.3), inset 0 0 2px rgba(255,255,255,0.3), 0 0 0 #d32f2f, 0 1px 2px rgba(0,0,0,0.2);
+    }
+
+/* Botão Azul Customizado */
+.btn-blue-custom { /* Use esta classe junto com .btn-custom-style */
+    background: linear-gradient(to bottom, #5dade2, #3498db);
+    box-shadow: inset 0 1px 0 rgba(255,255,255,0.3), inset 0 0 2px rgba(255,255,255,0.3), 0 4px 0 #2980b9, 0 5px 5px rgba(0,0,0,0.2);
 }
 
-.header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 20px;
-}
-
-.action-buttons button {
-    padding: 8px 20px;
-    margin-left: 10px;
-    border: none;
-    border-radius: 5px;
-    cursor: pointer;
-    font-weight: bold;
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
-    transition: all 0.1s ease;
-}
+    .btn-blue-custom:active {
+        box-shadow: inset 0 1px 0 rgba(255,255,255,0.3), inset 0 0 2px rgba(255,255,255,0.3), 0 0 0 #2980b9, 0 1px 2px rgba(0,0,0,0.2);
+    }
 
 .edit-btn {
     background: linear-gradient(to bottom, #7d8cff, #6c7cff);
@@ -161,7 +252,6 @@ h1 {
         transform: translateY(4px);
         box-shadow: inset 0 1px 0 rgba(255,255,255,0.3), inset 0 0 2px rgba(255,255,255,0.3), 0 0 0 #ccbe00, 0 1px 2px rgba(0,0,0,0.2);
     }
-
 .filter-btn {
     padding: 8px 20px;
     background: linear-gradient(to bottom, #ffa443, #ff9933);
@@ -178,80 +268,215 @@ h1 {
         transform: translateY(4px);
         box-shadow: inset 0 1px 0 rgba(255,255,255,0.3), inset 0 0 2px rgba(255,255,255,0.3), 0 0 0 #cc7a29, 0 1px 2px rgba(0,0,0,0.2);
     }
+.btn-custom-edit {
+    background: linear-gradient(to bottom, #7d8cff, #6c7cff);
+    color: white;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    box-shadow: inset 0 1px 0 rgba(255,255,255,0.3), inset 0 0 2px rgba(255,255,255,0.3), 0 4px 0 #4b59cc, 0 5px 5px rgba(0,0,0,0.2);
+    text-shadow: 0 -1px 0 rgba(0,0,0,0.3);
+    transition: all 0.1s ease;
+}
 
+    .btn-custom-edit:hover {
+        transform: translateY(4px);
+        box-shadow: inset 0 1px 0 rgba(255,255,255,0.3), inset 0 0 2px rgba(255,255,255,0.3), 0 0 0 #4b59cc, 0 1px 2px rgba(0,0,0,0.2);
+    }
+
+/* Botão Detalhes Customizado - Verde */
+.btn-custom-details {
+    color: #fff; 
+    background-color: #28a745; /* Verde (cor de success do Bootstrap) */
+    border-color: #28a745;
+}
+
+    .btn-custom-details:hover {
+        color: #fff;
+        background-color: #218838; /* Verde mais escuro no hover */
+        border-color: #1e7e34;
+    }
+.btn-danger {
+    color: #fff;
+    background-color: #dc3545;
+    border-color: #dc3545;
+}
+
+    .btn-danger:hover {
+        color: #fff;
+        background-color: #c82333;
+        border-color: #bd2130;
+    }
 .search-bar {
     display: flex;
     gap: 10px;
     margin-bottom: 20px;
 }
 
-    .search-bar input {
-        padding: 8px;
-        border: 1px solid #ddd;
-        border-radius: 5px;
-    }
+.search-bar input {
+    padding: 8px;
+    border: 1px solid #ddd;
+    border-radius: 5px;
+}
 
-        .search-bar input[type="text"] {
-            flex: 1;
-        }
-
+.search-bar input[type="text"] {
+    flex: 1;
+}
 
 
 .table-container {
-    flex: 1;
-    overflow-y: auto;
-    max-height: calc(100vh - 290px);
+    /* flex: 1; Removido, pois pode causar problemas de altura se não for o único elemento flexível */
+    overflow-y: auto; /* Scroll vertical se a tabela for muito grande */
+    /* max-height: calc(100vh - 290px); Ajuste essa altura conforme necessário ou remova se o layout da página não precisar */
+    border: 1px solid #e0e0e0; /* Borda sutil ao redor da tabela */
+    border-radius: 8px; /* Bordas arredondadas para o container da tabela */
+
 }
 
 table {
     width: 100%;
-    border-collapse: collapse;
+    border-collapse: collapse; /* Remove espaços entre as células */
 }
 
 thead {
-    position: sticky;
+    position: sticky; /* Faz o cabeçalho da tabela ficar fixo no topo ao rolar */
     top: 0;
-    z-index: 1;
+    z-index: 1; /* Garante que o cabeçalho fique acima do conteúdo da tabela ao rolar */
 }
 
 th {
-    background-color: #000;
+    background-color: #6c7ae0; /* Cor de fundo para cabeçalhos de tabela (um azul/roxo suave) */
     color: white;
     text-align: left;
-    padding: 12px;
+    padding: 12px 15px; /* Aumentado o padding para melhor espaçamento */
+    font-weight: 600; /* Fonte mais forte para cabeçalhos */
+    text-transform: uppercase; /* Opcional: para deixar em maiúsculas */
+    letter-spacing: 0.5px; /* Opcional: espaçamento entre letras */
 }
 
 td {
-    padding: 12px;
+    padding: 12px 15px;
     border-bottom: 1px solid #eee;
+    color: #333; /* Cor de texto para células */
 }
 
-tr:nth-child(even) {
+tr:nth-child(even) { /* Linhas pares com fundo diferente para legibilidade */
     background-color: #f8f9fa;
 }
 
-.status-x {
-    color: #ff4444;
-    font-weight: bold;
-    font-size: 1.2em;
+tr:hover { /* Efeito de hover nas linhas da tabela */
+    background-color: #e9ecef;
 }
 
 
+/* Formulários (usados na página de login e podem ser usados em outras) */
+.container { /* Este é o seu container principal para as páginas de login/formulário */
+    background-color: #fff;
+    padding: 30px 40px; /* Ajustado padding */
+    border-radius: 10px;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+    text-align: center;
+    width: 90%;
+    max-width: 450px; /* Largura para formulários de login */
+    margin: auto; /* Para centralizar o container na página se o body não for flex com justify/align center */
+    /* Se body é flex e centraliza, este margin:auto não é estritamente necessário */
+}
 
+#registo-ponto-area, #admin-login-area { /* Seus containers de conteúdo/formulário */
+    width: 100%; /* Ocupa a largura do pai (ex: .container ou .content) */
+    /* background: #ffffff; Já definido no .content ou .container */
+    /* box-shadow: 0 8px 30px rgba(0, 0, 0, 0.2); Já definido */
+    /* border-radius: 12px; Já definido */
+    padding: 20px; /* Padding interno para estes blocos */
+    /* margin-top: 20px; Opcional, dependendo do espaçamento desejado */
+    /* animation: fadeIn 0.8s ease-in-out; Já definido */
+    text-align: center; /* Centraliza o texto e elementos inline-block dentro */
+}
+
+.form-group {
+    margin-bottom: 1.5rem; /* Aumenta o espaçamento entre os grupos de formulário */
+    text-align: left; /* Alinha labels e inputs à esquerda dentro do form-group */
+}
+
+    .form-group label {
+        display: block; /* Faz o label ocupar a linha inteira */
+        margin-bottom: .5rem; /* Espaço entre label e input */
+        font-weight: 500;
+        color: #495057;
+    }
+
+input.obra-input, /* Seu input customizado */
+input[type="text"],
+input[type="password"],
+input[type="email"], /* Adicionado para consistência */
+input[type="number"], /* Adicionado para consistência */
+input[type="date"],
+select {
+
+    padding: 10px 12px; /* Ajustado padding */
+    margin-bottom: 5px; /* Reduzida margem inferior se o span de validação vier abaixo */
+    border: 1px solid #ced4da; /* Cor de borda padrão Bootstrap */
+    border-radius: 5px; /* Raio menor para inputs */
+    font-size: 1rem;
+    transition: border-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out;
+    line-height: 1.5;
+}
+
+    input.obra-input:focus,
+    input[type="text"]:focus,
+    input[type="password"]:focus,
+    input[type="email"]:focus,
+    input[type="number"]:focus,
+    input[type="date"]:focus,
+    select:focus {
+        border-color: #80bdff; /* Cor de foco Bootstrap */
+        outline: 0;
+        box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, 0.25); /* Sombra de foco Bootstrap */
+    }
+
+.text-danger { /* Para mensagens de validação */
+    font-size: 0.875em;
+    color: #dc3545; /* Vermelho Bootstrap para erros */
+    display: block; /* Para que ocupe sua própria linha abaixo do input */
+    margin-top: .25rem;
+}
+
+.flex-center { /* Para centralizar grupos de botões */
+    display: flex;
+    justify-content: center;
+    gap: 10px; /* Espaço entre itens flex */
+    margin-top: 20px; /* Margem acima do grupo de botões */
+    margin-bottom: 20px;
+}
+
+
+/* Animações */
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(-20px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* Responsividade */
 @media screen and (max-width: 768px) {
-    .logo-img {
-        width: 50%;
-        height: auto;
-    }
-
-    body {
-        flex-direction: column;
-    }
-
     .sidebar {
         width: 100%;
+        height: auto; /* Altura automática em telas pequenas */
         border-right: none;
         border-bottom: 1px solid #e0e0e0;
+        /* Adicione mais estilos para a sidebar no mobile se necessário (ex: menu hamburguer) */
+    }
+
+    .sair-btn {
+        width: 90%; /* Ajusta a largura do botão sair em mobile */
+        margin-left: auto;
+        margin-right: auto;
     }
 
     main {
@@ -260,33 +485,42 @@ tr:nth-child(even) {
 
     .header {
         flex-direction: column;
-        align-items: stretch;
+        align-items: stretch; /* Faz os itens do header ocuparem a largura */
     }
+
+        .header h2 {
+            text-align: center;
+            margin-bottom: 15px;
+        }
 
     .action-buttons {
-        justify-content: flex-start;
+        display: flex;
+        flex-direction: column; /* Empilha os botões de ação */
+        gap: 10px; /* Espaço entre botões empilhados */
     }
 
-    .content {
-        padding: 15px;
+        .action-buttons button, .action-buttons .btn {
+            width: 100%; /* Botões de ação ocupam largura total */
+            margin-left: 0;
+        }
+
+    .search-bar {
+        flex-direction: column; /* Empilha os inputs de busca */
     }
 
-    /* Make table scrollable horizontally */
-    .content {
+        .search-bar input, .search-bar button {
+            width: 100%; /* Ocupam largura total */
+        }
+
+    .content { /* Para permitir scroll horizontal da tabela em telas pequenas */
         overflow-x: auto;
     }
 
-    table {
-        min-width: 600px; /* Ensure table doesn't get too squeezed */
+    table { /* Garante que a tabela tenha uma largura mínima para não ficar muito espremida */
+        min-width: 650px;
     }
 
-    h1 {
-        font-size: 1.5em;
-        margin-bottom: 20px;
-    }
-
-    .action-buttons button {
-        padding: 8px 15px;
-        font-size: 0.9em;
+    main h1 {
+        font-size: 1.8em;
     }
 }

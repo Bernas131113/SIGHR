@@ -1,16 +1,14 @@
 ﻿using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
-using SIGHR.Areas.Identity.Data; // Certifique-se que este é o namespace correto
 using Microsoft.Extensions.Logging;
 using System;
 using Microsoft.Extensions.Configuration;
-
+using SIGHR.Areas.Identity.Data;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// 1. Configurar a Connection String para UMA ÚNICA BASE DE DADOS
-//    (Assumindo que você escolheu "DefaultConnection" como sua principal e ela aponta para "SIGHRdb")
-var connectionString = builder.Configuration.GetConnectionString("SIGHRContextConnection")
+// 1. Configurar a Connection String (usando "DefaultConnection" que aponta para "SIGHRdb")
+var connectionString = builder.Configuration.GetConnectionString("DefaultConnection")
     ?? throw new InvalidOperationException("Connection string 'DefaultConnection' not found. Please define it in appsettings.json.");
 
 // 2. Adicionar o DbContext (SIGHRContext)
@@ -36,15 +34,31 @@ builder.Services.AddDefaultIdentity<SIGHRUser>(options =>
 builder.Services.AddAuthentication()
     .AddCookie("AdminLoginScheme", options =>
     {
-        options.LoginPath = "/Admin/Login"; // Sua Razor Page de login de admin
-        options.AccessDeniedPath = "/Admin/AccessDenied";
+        // Caminho para sua Razor Page AdminLogin na área Identity
+        options.LoginPath = "/Identity/Account/AdminLogin"; // << AJUSTADO
+        options.AccessDeniedPath = "/Identity/Account/AccessDenied"; // Caminho padrão do Identity para Acesso Negado
+        // Ou, se você tiver uma página customizada: options.AccessDeniedPath = "/Admin/AccessDenied";
         options.ExpireTimeSpan = TimeSpan.FromMinutes(60);
         options.SlidingExpiration = true;
     });
+builder.Services.AddAuthentication()
+    .AddCookie("CollaboratorLoginScheme", options =>
+    {
+        options.LoginPath = "/Identity/Account/CollaboratorPinLogin"; // Nova página de login para colaboradores
+        options.AccessDeniedPath = "/Identity/Account/AccessDenied"; // Página de acesso negado para colaboradores
+        options.ExpireTimeSpan = TimeSpan.FromHours(8); // Exemplo: sessão de 8 horas
+        options.SlidingExpiration = true;
+    });
+
+
 
 // 5. Configurar outros serviços
 builder.Services.AddControllersWithViews();
-builder.Services.AddRazorPages();
+builder.Services.AddRazorPages(options =>
+{
+    // Convenções para Razor Pages, se necessário
+    // Ex: options.Conventions.AuthorizeAreaPage("Identity", "/Account/Manage");
+});
 
 // ----- Fim da configuração de Serviços -----
 var app = builder.Build();
@@ -63,13 +77,13 @@ else
 app.UseHttpsRedirection();
 app.UseStaticFiles();
 app.UseRouting();
-app.UseAuthentication();
+app.UseAuthentication(); // Essencial para os esquemas de autenticação
 app.UseAuthorization();
 
 app.MapControllerRoute(
     name: "default",
     pattern: "{controller=Home}/{action=Index}/{id?}");
-app.MapRazorPages();
+app.MapRazorPages(); // Mapeia Razor Pages, incluindo as do Identity
 
 // ----- Seeding de Dados Iniciais -----
 using (var scope = app.Services.CreateScope())
@@ -79,8 +93,8 @@ using (var scope = app.Services.CreateScope())
     {
         var userManager = services.GetRequiredService<UserManager<SIGHRUser>>();
         var roleManager = services.GetRequiredService<RoleManager<IdentityRole>>();
-        var loggerFactory = services.GetRequiredService<ILoggerFactory>(); // Obter a factory
-        var logger = loggerFactory.CreateLogger<Program>(); // Criar logger para Program
+        var loggerFactory = services.GetRequiredService<ILoggerFactory>();
+        var logger = loggerFactory.CreateLogger<Program>();
         var configuration = services.GetRequiredService<IConfiguration>();
 
         await SeedRolesAsync(roleManager, logger);
@@ -96,7 +110,7 @@ using (var scope = app.Services.CreateScope())
 
 app.Run();
 
-// ----- Métodos de Seeding -----
+// ----- Métodos de Seeding (Coloque-os no final do Program.cs ou em uma classe separada) -----
 async Task SeedRolesAsync(RoleManager<IdentityRole> roleManager, ILogger<Program> logger)
 {
     string[] roleNames = { "Admin", "Office", "Collaborator" };
@@ -117,64 +131,37 @@ async Task SeedAdminUserForPinLoginAsync(
     ILogger<Program> logger,
     IConfiguration configuration)
 {
-    // Ler credenciais da configuração como string? para evitar aviso inicial
-    string? configUserName = configuration["SeedAdminCredentials:UserName"];
-    string? configEmail = configuration["SeedAdminCredentials:Email"];
-    string? configPIN_str = configuration["SeedAdminCredentials:PIN"];
-    string? configNomeCompleto = configuration["SeedAdminCredentials:NomeCompleto"];
-    string? configPassword = configuration["SeedAdminCredentials:Password"]; // Senha para o Identity
+    string? adminUserName = configuration["SeedAdminCredentials:UserName"];
+    string? adminEmail = configuration["SeedAdminCredentials:Email"];
+    string? adminPIN_str = configuration["SeedAdminCredentials:PIN"];
+    string? adminNomeCompleto = configuration["SeedAdminCredentials:NomeCompleto"];
+    string? adminPassword = configuration["SeedAdminCredentials:Password"];
 
     string adminRoleName = "Admin";
 
-    // Validar se as configurações essenciais foram encontradas e fornecer fallbacks seguros se necessário
-    if (string.IsNullOrEmpty(configUserName))
-    {
-        logger.LogWarning("SeedAdminCredentials:UserName não configurado. Usando 'bernardo.alves' como fallback.");
-        configUserName = "bernardo.alves";
-    }
-    if (string.IsNullOrEmpty(configEmail))
-    {
-        logger.LogWarning($"SeedAdminCredentials:Email não configurado. Usando 'default_{configUserName}@sighr-placeholder.com' como fallback.");
-        configEmail = $"default_{configUserName}@sighr-placeholder.com";
-    }
-    if (string.IsNullOrEmpty(configPIN_str) || !int.TryParse(configPIN_str, out int parsedPIN))
-    {
-        logger.LogWarning($"SeedAdminCredentials:PIN não configurado ou inválido. Usando '1311' como fallback.");
-        parsedPIN = 1311;
-    }
-    // Se a senha não estiver configurada, geramos uma dummy forte.
-    if (string.IsNullOrEmpty(configPassword))
-    {
-        configPassword = Guid.NewGuid().ToString() + "XyZ789#"; // Senha dummy forte gerada
-        logger.LogInformation("SeedAdminCredentials:Password não configurada. Gerando uma senha dummy para o usuário admin do Identity.");
-    }
-
-    // Agora as variáveis que usamos para criar o usuário são garantidas como não nulas (exceto NomeCompleto e Tipo que podem ser)
-    string adminUserName = configUserName; // Já validado ou com fallback
-    string adminEmail = configEmail;       // Já validado ou com fallback
-    int adminPIN = parsedPIN;              // Já validado ou com fallback
-    string? adminNomeCompleto = configNomeCompleto; // Pode ser nulo, SIGHRUser.NomeCompleto também é string?
-    string adminPasswordForIdentity = configPassword; // Já garantido como não nulo
+    if (string.IsNullOrEmpty(adminUserName)) { adminUserName = "bernardo.alves"; logger.LogWarning("SeedAdminCredentials:UserName não configurado, usando fallback."); }
+    if (string.IsNullOrEmpty(adminEmail)) { adminEmail = $"default_{adminUserName}@sighr-placeholder.com"; logger.LogWarning("SeedAdminCredentials:Email não configurado, usando fallback."); }
+    if (string.IsNullOrEmpty(adminPIN_str) || !int.TryParse(adminPIN_str, out int adminPIN)) { adminPIN = 1311; logger.LogWarning("SeedAdminCredentials:PIN não configurado ou inválido, usando fallback."); }
+    if (string.IsNullOrEmpty(adminNomeCompleto)) { adminNomeCompleto = "Bernardo Alves (Admin)"; }
+    if (string.IsNullOrEmpty(adminPassword)) { adminPassword = Guid.NewGuid().ToString() + "XyZ789#"; logger.LogInformation("SeedAdminCredentials:Password não configurado, gerando senha dummy."); }
 
 
     var existingUser = await userManager.FindByNameAsync(adminUserName);
-
     if (existingUser == null)
     {
         var adminUser = new SIGHRUser
         {
-            UserName = adminUserName, // string
-            Email = adminEmail,       // string
+            UserName = adminUserName,
+            Email = adminEmail,
             EmailConfirmed = true,
-            NomeCompleto = adminNomeCompleto, // string?
-            PIN = adminPIN,                   // int
-            Tipo = adminRoleName              // string (role name não deve ser nulo)
+            NomeCompleto = adminNomeCompleto,
+            PIN = adminPIN,
+            Tipo = adminRoleName
         };
-
-        var result = await userManager.CreateAsync(adminUser, adminPasswordForIdentity); // Passa a senha garantida como não nula
+        var result = await userManager.CreateAsync(adminUser, adminPassword);
         if (result.Succeeded)
         {
-            logger.LogInformation($"Usuário '{adminUser.UserName}' (para login por PIN) criado com sucesso.");
+            logger.LogInformation($"Usuário '{adminUser.UserName}' (para login por PIN) criado.");
             if (await roleManager.RoleExistsAsync(adminRoleName))
             {
                 var addToRoleResult = await userManager.AddToRoleAsync(adminUser, adminRoleName);
@@ -187,40 +174,22 @@ async Task SeedAdminUserForPinLoginAsync(
     }
     else
     {
-        logger.LogInformation($"Usuário '{adminUserName}' (para login por PIN) já existe. Verificando/atualizando.");
+        logger.LogInformation($"Usuário '{adminUserName}' já existe. Verificando/atualizando PIN, Tipo, Role.");
         bool needsUpdate = false;
         if (existingUser.PIN != adminPIN) { existingUser.PIN = adminPIN; needsUpdate = true; }
         if (existingUser.Tipo != adminRoleName) { existingUser.Tipo = adminRoleName; needsUpdate = true; }
-        // Se adminNomeCompleto da config é não nulo E diferente do existente, atualiza.
-        // Se for nulo na config mas existente no BD, não limpa (a menos que essa seja a intenção).
-        if (adminNomeCompleto != null && existingUser.NomeCompleto != adminNomeCompleto)
-        {
-            existingUser.NomeCompleto = adminNomeCompleto;
-            needsUpdate = true;
-        }
-        else if (adminNomeCompleto == null && existingUser.NomeCompleto != null) // Se quiser limpar se não estiver na config
-        {
-            // existingUser.NomeCompleto = null;
-            // needsUpdate = true;
-        }
-
-
+        if (adminNomeCompleto != null && existingUser.NomeCompleto != adminNomeCompleto) { existingUser.NomeCompleto = adminNomeCompleto; needsUpdate = true; }
         if (needsUpdate)
         {
             var updateResult = await userManager.UpdateAsync(existingUser);
-            if (updateResult.Succeeded) logger.LogInformation($"Dados atualizados para o usuário '{adminUserName}'.");
-            else foreach (var error in updateResult.Errors) logger.LogError($"Erro ao atualizar dados: {error.Description}");
+            if (updateResult.Succeeded) logger.LogInformation($"Dados atualizados para '{adminUserName}'.");
+            else foreach (var error in updateResult.Errors) logger.LogError($"Erro ao atualizar dados de '{adminUserName}': {error.Description}");
         }
-
-        if (!await userManager.IsInRoleAsync(existingUser, adminRoleName))
+        if (!await userManager.IsInRoleAsync(existingUser, adminRoleName) && await roleManager.RoleExistsAsync(adminRoleName))
         {
-            if (await roleManager.RoleExistsAsync(adminRoleName))
-            {
-                var addToRoleResult = await userManager.AddToRoleAsync(existingUser, adminRoleName);
-                if (addToRoleResult.Succeeded) logger.LogInformation($"Usuário '{adminUserName}' (existente) adicionado ao role '{adminRoleName}'.");
-                else foreach (var error in addToRoleResult.Errors) logger.LogError($"Erro ao adicionar usuário existente ao role: {error.Description}");
-            }
-            else logger.LogWarning($"Role '{adminRoleName}' não encontrada para usuário existente.");
+            var addToRoleResult = await userManager.AddToRoleAsync(existingUser, adminRoleName);
+            if (addToRoleResult.Succeeded) logger.LogInformation($"Usuário '{adminUserName}' (existente) adicionado ao role '{adminRoleName}'.");
+            else foreach (var error in addToRoleResult.Errors) logger.LogError($"Erro ao adicionar usuário existente ao role: {error.Description}");
         }
     }
 }
