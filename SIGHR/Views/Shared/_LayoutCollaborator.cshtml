@@ -23,8 +23,8 @@
                 <li class="@(IsPageActive(ViewContext, "/RegistoPonto") ? "active" : "")">
                     <a asp-page="/RegistoPonto">Registo de Ponto</a>
                 </li>
-                <li class="@(IsControllerActive(ViewContext, "MinhasFaltas") ? "active" : "")">
-                    <a asp-controller="MinhasFaltas" asp-action="Index">Minhas Faltas</a>
+                <li>
+                    <a asp-controller="Faltas" asp-action="MinhasFaltas">Minhas Faltas</a>
                 </li>
                 <li class="@(IsControllerActive(ViewContext, "MinhasEncomendas") ? "active" : "")">
                     <a asp-controller="MinhasEncomendas" asp-action="Index">Minhas Encomendas</a>
@@ -33,7 +33,7 @@
                     <a asp-controller="MaterialRequest" asp-action="Create">Pedir Material</a>
                 </li>
                 <li>
-                    <a asp-controller="FaltaRequest" asp-action="Create">Registar Falta</a>
+                <a asp-controller="Faltas" asp-action="Registar">Registar Falta</a>
                 </li>
             </ul>
         </nav>
