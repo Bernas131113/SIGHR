@@ -14,7 +14,7 @@ using SIGHR.Areas.Identity.Data;
 
 namespace SIGHR.Controllers
 {
-    [Authorize(Roles = "Admin,Office,Collaborator", AuthenticationSchemes = "Identity.Application,AdminLoginScheme")]
+    [Authorize(Roles = "Admin,Office,Collaborator", AuthenticationSchemes = "Identity.Application,AdminLoginScheme,CollaboratorLoginScheme")]
     public class FaltasController : Controller
     {
         private readonly SIGHRContext _context;
@@ -112,7 +112,7 @@ namespace SIGHR.Controllers
         }
 
         // Exemplo de como um Admin/Office poderia ver todas as faltas:
-        [Authorize(Roles = "Admin,Office", AuthenticationSchemes = "Identity.Application,AdminLoginScheme")]
+        [Authorize(Roles = "Admin,Office", AuthenticationSchemes = "Identity.Application,AdminLoginScheme,CollaboratorLoginScheme")]
         public async Task<IActionResult> TodasAsFaltas(string? filtroNome, DateTime? filtroData)
         {
             IQueryable<Falta> query = _context.Faltas.Include(f => f.User); // Include agora deve funcionar

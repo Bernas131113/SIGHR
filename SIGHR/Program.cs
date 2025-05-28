@@ -7,7 +7,7 @@ using SIGHR.Areas.Identity.Data;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// 1. Configurar a Connection String (usando "DefaultConnection" que aponta para "SIGHRdb")
+// 1. Configurar a Connection String
 var connectionString = builder.Configuration.GetConnectionString("DefaultConnection")
     ?? throw new InvalidOperationException("Connection string 'DefaultConnection' not found. Please define it in appsettings.json.");
 
@@ -15,7 +15,7 @@ var connectionString = builder.Configuration.GetConnectionString("DefaultConnect
 builder.Services.AddDbContext<SIGHRContext>(options =>
     options.UseSqlServer(connectionString));
 
-// 3. Configurar o ASP.NET Core Identity
+// 3. Configurar o ASP.NET Core Identity (Isso configura o IdentityConstants.ApplicationScheme)
 builder.Services.AddDefaultIdentity<SIGHRUser>(options =>
 {
     options.SignIn.RequireConfirmedAccount = false;
@@ -27,29 +27,43 @@ builder.Services.AddDefaultIdentity<SIGHRUser>(options =>
     options.Password.RequiredUniqueChars = 1;
     options.User.RequireUniqueEmail = true;
 })
-    .AddRoles<IdentityRole>()
-    .AddEntityFrameworkStores<SIGHRContext>();
+    .AddRoles<IdentityRole>() // Habilita o uso de Funções (Roles)
+    .AddEntityFrameworkStores<SIGHRContext>(); // Diz ao Identity para usar SEU SIGHRContext
 
-// 4. Configurar esquemas de autenticação adicionais
-builder.Services.AddAuthentication()
-    .AddCookie("AdminLoginScheme", options =>
+// 4. Configurar a Autenticação e os esquemas de Cookie Adicionais
+//    AddDefaultIdentity já chama AddAuthentication().AddCookie(IdentityConstants.ApplicationScheme)
+//    Então, aqui configuramos o DefaultChallengeScheme e adicionamos os outros esquemas.
+builder.Services.AddAuthentication(options =>
+{
+    // Define o esquema que será usado para desafiar o usuário (redirecionar para login)
+    // quando a autorização falha e nenhum esquema específico é satisfeito pelo usuário.
+    // Se um colaborador anônimo tenta acessar FaltasController, ele será enviado para /Identity/Account/Login.
+    options.DefaultChallengeScheme = IdentityConstants.ApplicationScheme;
+    options.DefaultSignInScheme = IdentityConstants.ApplicationScheme; // Usado para logins externos, etc.
+    options.DefaultAuthenticateScheme = IdentityConstants.ApplicationScheme; // Qual esquema usar para autenticar por padrão se não especificado
+})
+    .AddCookie("AdminLoginScheme", options => // Seu esquema para Admin PIN login
     {
-        // Caminho para sua Razor Page AdminLogin na área Identity
-        options.LoginPath = "/Identity/Account/AdminLogin"; // << AJUSTADO
-        options.AccessDeniedPath = "/Identity/Account/AccessDenied"; // Caminho padrão do Identity para Acesso Negado
-        // Ou, se você tiver uma página customizada: options.AccessDeniedPath = "/Admin/AccessDenied";
+        options.LoginPath = "/Identity/Account/AdminLogin"; // Rota da sua Razor Page AdminLogin
+        options.AccessDeniedPath = "/Identity/Account/AccessDenied"; // Página de acesso negado
         options.ExpireTimeSpan = TimeSpan.FromMinutes(60);
         options.SlidingExpiration = true;
-    });
-builder.Services.AddAuthentication()
-    .AddCookie("CollaboratorLoginScheme", options =>
+    })
+    .AddCookie("CollaboratorLoginScheme", options => // Seu esquema para Colaborador PIN login
     {
-        options.LoginPath = "/Identity/Account/CollaboratorPinLogin"; // Nova página de login para colaboradores
-        options.AccessDeniedPath = "/Identity/Account/AccessDenied"; // Página de acesso negado para colaboradores
-        options.ExpireTimeSpan = TimeSpan.FromHours(8); // Exemplo: sessão de 8 horas
+        options.LoginPath = "/Identity/Account/CollaboratorPinLogin"; // Rota da sua Razor Page CollaboratorPinLogin
+        options.AccessDeniedPath = "/Identity/Account/AccessDenied";
+        options.ExpireTimeSpan = TimeSpan.FromHours(8);
         options.SlidingExpiration = true;
     });
-
+// O cookie para IdentityConstants.ApplicationScheme já foi configurado por AddDefaultIdentity.
+// Se você precisar customizar as opções dele (como o LoginPath se não for o padrão),
+// você pode usar builder.Services.ConfigureApplicationCookie(options => { ... }); APÓS AddDefaultIdentity.
+// Exemplo:
+// builder.Services.ConfigureApplicationCookie(options =>
+// {
+//     options.LoginPath = "/Identity/Account/Login"; // Caminho padrão, mas pode ser customizado
+// });
 
 
 // 5. Configurar outros serviços
@@ -57,7 +71,6 @@ builder.Services.AddControllersWithViews();
 builder.Services.AddRazorPages(options =>
 {
     // Convenções para Razor Pages, se necessário
-    // Ex: options.Conventions.AuthorizeAreaPage("Identity", "/Account/Manage");
 });
 
 // ----- Fim da configuração de Serviços -----
@@ -77,13 +90,15 @@ else
 app.UseHttpsRedirection();
 app.UseStaticFiles();
 app.UseRouting();
-app.UseAuthentication(); // Essencial para os esquemas de autenticação
-app.UseAuthorization();
+
+// IMPORTANTE: Ordem correta do Middleware
+app.UseAuthentication(); // Processa os cookies de autenticação e estabelece a identidade do usuário
+app.UseAuthorization();  // Verifica se o usuário autenticado tem permissão para acessar o recurso
 
 app.MapControllerRoute(
     name: "default",
     pattern: "{controller=Home}/{action=Index}/{id?}");
-app.MapRazorPages(); // Mapeia Razor Pages, incluindo as do Identity
+app.MapRazorPages(); // Mapeia Razor Pages
 
 // ----- Seeding de Dados Iniciais -----
 using (var scope = app.Services.CreateScope())
@@ -99,6 +114,8 @@ using (var scope = app.Services.CreateScope())
 
         await SeedRolesAsync(roleManager, logger);
         await SeedAdminUserForPinLoginAsync(userManager, roleManager, logger, configuration);
+        // Considere adicionar um método para semear usuários Colaboradores e Office se necessário
+        // await SeedCollaboratorUserAsync(userManager, roleManager, logger, configuration);
     }
     catch (Exception ex)
     {
@@ -135,7 +152,7 @@ async Task SeedAdminUserForPinLoginAsync(
     string? adminEmail = configuration["SeedAdminCredentials:Email"];
     string? adminPIN_str = configuration["SeedAdminCredentials:PIN"];
     string? adminNomeCompleto = configuration["SeedAdminCredentials:NomeCompleto"];
-    string? adminPassword = configuration["SeedAdminCredentials:Password"];
+    string? adminPassword = configuration["SeedAdminCredentials:Password"]; // Senha para o Identity
 
     string adminRoleName = "Admin";
 
@@ -144,7 +161,6 @@ async Task SeedAdminUserForPinLoginAsync(
     if (string.IsNullOrEmpty(adminPIN_str) || !int.TryParse(adminPIN_str, out int adminPIN)) { adminPIN = 1311; logger.LogWarning("SeedAdminCredentials:PIN não configurado ou inválido, usando fallback."); }
     if (string.IsNullOrEmpty(adminNomeCompleto)) { adminNomeCompleto = "Bernardo Alves (Admin)"; }
     if (string.IsNullOrEmpty(adminPassword)) { adminPassword = Guid.NewGuid().ToString() + "XyZ789#"; logger.LogInformation("SeedAdminCredentials:Password não configurado, gerando senha dummy."); }
-
 
     var existingUser = await userManager.FindByNameAsync(adminUserName);
     if (existingUser == null)
@@ -161,7 +177,7 @@ async Task SeedAdminUserForPinLoginAsync(
         var result = await userManager.CreateAsync(adminUser, adminPassword);
         if (result.Succeeded)
         {
-            logger.LogInformation($"Usuário '{adminUser.UserName}' (para login por PIN) criado.");
+            logger.LogInformation($"Usuário '{adminUser.UserName}' (Admin) criado.");
             if (await roleManager.RoleExistsAsync(adminRoleName))
             {
                 var addToRoleResult = await userManager.AddToRoleAsync(adminUser, adminRoleName);
@@ -174,7 +190,7 @@ async Task SeedAdminUserForPinLoginAsync(
     }
     else
     {
-        logger.LogInformation($"Usuário '{adminUserName}' já existe. Verificando/atualizando PIN, Tipo, Role.");
+        logger.LogInformation($"Usuário '{adminUserName}' (Admin) já existe. Verificando/atualizando.");
         bool needsUpdate = false;
         if (existingUser.PIN != adminPIN) { existingUser.PIN = adminPIN; needsUpdate = true; }
         if (existingUser.Tipo != adminRoleName) { existingUser.Tipo = adminRoleName; needsUpdate = true; }
@@ -193,3 +209,5 @@ async Task SeedAdminUserForPinLoginAsync(
         }
     }
 }
+// Você precisaria de um método similar para semear usuários Colaboradores e Office,
+// garantindo que eles sejam adicionados aos roles "Collaborator" e "Office" respectivamente.

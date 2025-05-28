@@ -1,0 +1,120 @@
+﻿@model IEnumerable<SIGHR.Models.ViewModels.FaltaComUserNameViewModel>
+
+@{
+    ViewData["Title"] = "Minhas Faltas Registadas";
+    Layout = "_LayoutCollaborator";
+}
+
+@section Styles {
+    <style>
+        /* Container para o botão "Registar Nova Falta" para aplicar margens e centralização opcional */
+        .registar-falta-button-container {
+            margin-top: 20px; /* Espaço acima do botão */
+            margin-bottom: 30px; /* Espaço abaixo do botão, antes da tabela ou mensagem */
+            text-align: left; /* Alinha o botão à esquerda por padrão */
+            /* Se quiser centralizar o botão: text-align: center; */
+        }
+
+        /* Estilo customizado para o botão "Registar Nova Falta" */
+        .btn-registar-falta {
+            display: inline-block; /* Permite padding e margin, mas flui com o texto se não centralizado */
+            padding: 12px 28px;
+            font-size: 1.1rem; /* Tamanho da fonte um pouco maior */
+            font-weight: 500; /* Fonte um pouco mais forte */
+            color: #fff; /* Cor do texto branca */
+            background-color: green; /* Azul primário (Bootstrap) */
+            border: none; /* Sem borda padrão */
+            border-radius: 8px; /* Bordas arredondadas */
+            text-decoration: none; /* Remove sublinhado de links <a> */
+            text-align: center;
+            cursor: pointer;
+            transition: background-color 0.2s ease-in-out, transform 0.1s ease-in-out, box-shadow 0.2s ease-in-out;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1); /* Sombra sutil */
+        }
+
+            .btn-registar-falta:hover {
+                background-color: green; /* Azul um pouco mais escuro no hover */
+                transform: translateY(-1px); /* Efeito leve de elevação */
+                box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+            }
+
+            .btn-registar-falta:active {
+                background-color:green; /* Azul ainda mais escuro ao clicar */
+                transform: translateY(0px);
+                box-shadow: 0 2px 3px rgba(0,0,0,0.1);
+            }
+
+
+        /* Estilos gerais da página (ajuste conforme necessário) */
+        .table-responsive {
+            margin-top: 20px;
+        }
+
+        .table thead th {
+            vertical-align: middle; /* color: black; */
+        }
+
+        .table tbody td {
+            vertical-align: middle;
+        }
+
+        .no-faltas-message {
+            padding: 15px;
+            background-color: #f8f9fa;
+            border: 1px solid #dee2e6;
+            border-radius: 5px;
+            text-align: center;
+            color: #495057;
+        }
+
+        .alert-success {
+            margin-top: 15px; /* O Bootstrap já estiliza isso. */
+        }
+    </style>
+}
+
+<h1>@ViewData["Title"]</h1>
+
+@if (TempData["SuccessMessage"] != null)
+{
+    <div class="alert alert-success mt-3" role="alert">
+        @TempData["SuccessMessage"]
+    </div>
+}
+
+<div class="registar-falta-button-container">
+    <a asp-action="Registar" class="btn-registar-falta">Registar Nova Falta</a>
+</div>
+
+@if (Model == null || !Model.Any())
+{
+    <p class="no-faltas-message">Você ainda não registou nenhuma falta.</p>
+}
+else
+{
+    <div class="table-responsive">
+        <table class="table table-striped table-hover">
+            <thead>
+                <tr>
+                    <th>Data da Falta</th>
+                    <th>Início</th>
+                    <th>Fim</th>
+                    <th>Motivo</th>
+                    <th>Data do Registo</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var item in Model)
+                {
+                    <tr>
+                        <td>@item.DataFalta.ToString("dd/MM/yyyy")</td>
+                        <td>@item.Inicio.ToString(@"hh\:mm")</td>
+                        <td>@item.Fim.ToString(@"hh\:mm")</td>
+                        <td>@Html.DisplayFor(modelItem => item.Motivo)</td>
+                        <td>@item.DataRegisto.ToString("dd/MM/yyyy HH:mm")</td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+}
