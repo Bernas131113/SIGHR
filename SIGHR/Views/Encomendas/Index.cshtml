@@ -1,0 +1,333 @@
+﻿@* Views/Encomendas/Index.cshtml *@
+@{
+    Layout = "_LayoutAdmin";
+    // ViewData["Title"] já foi definido no controller
+}
+
+@section Styles {
+@* Estilos específicos para a página de encomendas, se houver.
+           Muitos estilos da tabela, botões, etc., devem vir do seu adminarea.css global.
+        *@
+    <style>
+        .estado-select {
+            padding: 5px;
+            border-radius: 4px;
+            border: 1px solid #ccc;
+            min-width: 120px; /* Para dar espaço ao select */
+        }
+
+        .delete-checkbox { /* Já deve estar no seu CSS global ou na página de faltas */
+            display: none;
+            margin-right: 5px;
+            vertical-align: middle;
+        }
+        /* Outros estilos que podem ser específicos ou já estar no adminarea.css */
+        .admin-main-content .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            padding-bottom: 10px;
+            border-bottom: 1px solid #eee;
+        }
+
+            .admin-main-content .header h2 {
+                margin: 0;
+                font-size: 1.8em;
+            }
+    </style>
+}
+
+@* Conteúdo principal da página de Encomendas *@
+<div class="content">
+    <div class="header">
+        <h2>Gestão de Encomendas</h2>
+        <div class="action-buttons">
+            <button id="btn-ativar-excluir-encomendas" class="delete-btn" onclick="ativarModoExclusaoEncomendas()">Excluir</button>
+            <button id="btn-confirmar-excluir-encomendas" class="delete-btn" onclick="excluirEncomendasSelecionadas()" style="display:none;">Confirmar Exclusão</button>
+            <button id="btn-cancelar-excluir-encomendas" class="edit-btn" onclick="cancelarModoExclusaoEncomendas()" style="display:none;">Cancelar</button>
+        </div>
+    </div>
+
+    @* Adicionar filtros se necessário, similar à página de faltas *@
+    <div class="search-bar" style="margin-bottom: 20px; margin-top:15px; display: flex; gap: 10px; align-items: center;">
+        <input type="text" id="filtro-cliente-encomenda" placeholder="Pesquisar por cliente/obra" class="form-control-sm">
+        <input type="date" id="filtro-data-encomenda" placeholder="Pesquisar por data" class="form-control-sm">
+        <select id="filtro-estado-encomenda" class="form-control-sm">
+            <option value="">Todos os Estados</option>
+            <option value="Pendente">Pendente</option>
+            <option value="Em Processamento">Em Processamento</option>
+            <option value="Pronta para Envio">Pronta para Envio</option>
+            <option value="Enviada">Enviada</option>
+            <option value="Entregue">Entregue</option>
+            <option value="Cancelada">Cancelada</option>
+        </select>
+        <button class="filter-btn" onclick="aplicarFiltrosEncomendas()">Filtrar</button>
+        <button class="filter-btn" style="background-color: #6c757d;" onclick="limparFiltrosEncomendas()">Limpar</button>
+    </div>
+
+    <div class="table-container">
+        <table id="tabela-encomendas" class="table table-striped table-bordered table-hover">
+            <thead>
+                <tr>
+                    <th style="width:30px;"><input type="checkbox" id="selecionar-todas-encomendas" class="delete-checkbox" onchange="toggleSelecionarTodasEncomendas(this)"></th>
+                    <th>Cliente</th>
+                    <th>Data</th>
+                    <th>Obra</th>
+                    <th>Descrição</th>
+                    <th>Estado</th>
+                    @*<th>Ações</th>*@ @* Removida coluna de ações vazia, o select de estado já está na coluna Estado *@
+                </tr>
+            </thead>
+            <tbody>
+                @* Linhas da tabela serão preenchidas por JavaScript *@
+            </tbody>
+        </table>
+        <div id="nenhuma-encomenda" style="display:none; text-align:center; padding: 20px; font-style: italic;">
+            Nenhuma encomenda encontrada para os filtros aplicados.
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.17.2/xlsx.full.min.js"></script>
+    <script>
+        const API_URL_ENCOMENDAS_LISTAR = '@Url.Action("ListarEncomendasApi", "Encomendas", new { area = "" })';
+        const API_URL_ENCOMENDAS_EXCLUIR = '@Url.Action("ExcluirEncomendasApi", "Encomendas", new { area = "" })';
+        const API_URL_ENCOMENDAS_MUDAR_ESTADO = '@Url.Action("MudarEstadoEncomendaApi", "Encomendas", new { area = "" })';
+
+        // Estados possíveis para o dropdown de mudança de estado na tabela
+        const estadosEncomenda = ["Pendente", "Em Processamento", "Pronta para Envio", "Enviada", "Entregue", "Cancelada"];
+
+        let todasAsEncomendasCarregadas = [];
+
+        document.addEventListener('DOMContentLoaded', function () {
+            carregarEncomendasDaApi();
+        });
+
+        function formatarDataEncomenda(dataISO) {
+            if (!dataISO) return 'N/D';
+            try {
+                const data = new Date(dataISO);
+                if (isNaN(data.getTime())) return 'Data Inválida';
+                return data.toLocaleDateString('pt-PT', { day: '2-digit', month: '2-digit', year: 'numeric' });
+            } catch (e) { return 'Data Inválida'; }
+        }
+
+        async function carregarEncomendasDaApi(filtrosQuery = {}) {
+            const tbody = document.getElementById('tabela-encomendas').querySelector('tbody');
+            const divNenhumaEncomenda = document.getElementById('nenhuma-encomenda');
+            tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;">A carregar encomendas...</td></tr>';
+            divNenhumaEncomenda.style.display = 'none';
+
+            let url = new URL(API_URL_ENCOMENDAS_LISTAR, window.location.origin);
+            Object.keys(filtrosQuery).forEach(key => url.searchParams.append(key, filtrosQuery[key]));
+
+            try {
+                const response = await fetch(url);
+                if (!response.ok) {
+                    throw new Error(`Erro HTTP: ${response.status} - ${response.statusText}`);
+                }
+                todasAsEncomendasCarregadas = await response.json();
+                aplicarFiltrosEncomendas(); // Aplica filtros do frontend ou renderiza tudo
+            } catch (error) {
+                console.error('Erro ao carregar encomendas da API:', error);
+                tbody.innerHTML = `<tr><td colspan="6" style="text-align:center; color:red;">Erro ao carregar encomendas: ${error.message}</td></tr>`;
+                todasAsEncomendasCarregadas = [];
+            }
+        }
+
+        function renderizarTabelaEncomendas(encomendasParaRenderizar) {
+            const tbody = document.getElementById('tabela-encomendas').querySelector('tbody');
+            const divNenhumaEncomenda = document.getElementById('nenhuma-encomenda');
+            tbody.innerHTML = '';
+
+            if (encomendasParaRenderizar.length === 0) {
+                divNenhumaEncomenda.style.display = 'block';
+            } else {
+                divNenhumaEncomenda.style.display = 'none';
+                encomendasParaRenderizar.forEach(enc => {
+                    const tr = tbody.insertRow();
+                    tr.dataset.encomendaId = enc.encomendaId;
+
+                    tr.insertCell().innerHTML = `<input type="checkbox" class="delete-checkbox-row delete-checkbox" value="${enc.encomendaId}" onchange="verificarSelecaoParaExcluirEncomendas()">`;
+                    tr.insertCell().textContent = enc.nomeCliente || 'N/D';
+                    tr.insertCell().textContent = formatarDataEncomenda(enc.dataEncomenda);
+                    tr.insertCell().textContent = enc.nomeObra || 'N/D';
+                    tr.insertCell().textContent = enc.descricao || 'N/D';
+
+                    // Célula de Estado com um select
+                    const estadoCell = tr.insertCell();
+                    const selectEstado = document.createElement('select');
+                    selectEstado.classList.add('estado-select', 'form-control-sm'); // Adiciona classes bootstrap se quiser
+                    selectEstado.dataset.encomendaId = enc.encomendaId;
+                    estadosEncomenda.forEach(estado => {
+                        const option = document.createElement('option');
+                        option.value = estado;
+                        option.textContent = estado;
+                        if (enc.estado === estado) {
+                            option.selected = true;
+                        }
+                        selectEstado.appendChild(option);
+                    });
+                    selectEstado.addEventListener('change', function() {
+                        mudarEstadoEncomenda(this.dataset.encomendaId, this.value);
+                    });
+                    estadoCell.appendChild(selectEstado);
+                });
+            }
+             // Se o modo de exclusão estiver ativo, atualiza a visibilidade dos checkboxes
+            if (document.getElementById('btn-confirmar-excluir-encomendas').style.display !== 'none') {
+                 document.querySelectorAll('.delete-checkbox').forEach(cb => cb.style.display = 'inline-block');
+                 verificarSelecaoParaExcluirEncomendas();
+            }
+        }
+
+        function aplicarFiltrosEncomendas() {
+            const clienteObraFiltro = document.getElementById('filtro-cliente-encomenda').value.toLowerCase();
+            const dataFiltroStr = document.getElementById('filtro-data-encomenda').value;
+            const estadoFiltro = document.getElementById('filtro-estado-encomenda').value;
+
+            let encomendasFiltradas = todasAsEncomendasCarregadas.filter(enc => {
+                const clienteMatch = !clienteObraFiltro ||
+                                     (enc.nomeCliente && enc.nomeCliente.toLowerCase().includes(clienteObraFiltro)) ||
+                                     (enc.nomeObra && enc.nomeObra.toLowerCase().includes(clienteObraFiltro));
+
+                let dataMatch = true;
+                if (dataFiltroStr && enc.dataEncomenda) {
+                    try {
+                        const dataEncFormatada = new Date(enc.dataEncomenda).toISOString().split('T')[0];
+                        dataMatch = dataEncFormatada === dataFiltroStr;
+                    } catch (e) { dataMatch = false; }
+                } else if (dataFiltroStr && !enc.dataEncomenda) {
+                     dataMatch = false;
+                }
+
+                const estadoMatch = !estadoFiltro || (enc.estado && enc.estado === estadoFiltro);
+
+                return clienteMatch && dataMatch && estadoMatch;
+            });
+            renderizarTabelaEncomendas(encomendasFiltradas);
+        }
+
+        function limparFiltrosEncomendas() {
+            document.getElementById('filtro-cliente-encomenda').value = '';
+            document.getElementById('filtro-data-encomenda').value = '';
+            document.getElementById('filtro-estado-encomenda').value = '';
+            renderizarTabelaEncomendas(todasAsEncomendasCarregadas);
+        }
+
+
+        function ativarModoExclusaoEncomendas() {
+            document.querySelectorAll('#tabela-encomendas .delete-checkbox').forEach(cb => cb.style.display = 'inline-block');
+            document.getElementById('btn-ativar-excluir-encomendas').style.display = 'none';
+            document.getElementById('btn-confirmar-excluir-encomendas').style.display = 'inline-block';
+            document.getElementById('btn-cancelar-excluir-encomendas').style.display = 'inline-block';
+            document.getElementById('btn-confirmar-excluir-encomendas').disabled = true;
+        }
+
+        function cancelarModoExclusaoEncomendas() {
+            document.querySelectorAll('#tabela-encomendas .delete-checkbox').forEach(cb => {
+                cb.style.display = 'none';
+                cb.checked = false;
+            });
+            document.getElementById('btn-ativar-excluir-encomendas').style.display = 'inline-block';
+            document.getElementById('btn-confirmar-excluir-encomendas').style.display = 'none';
+            document.getElementById('btn-cancelar-excluir-encomendas').style.display = 'none';
+            document.getElementById('selecionar-todas-encomendas').checked = false;
+        }
+
+        function toggleSelecionarTodasEncomendas(selectAllCheckbox) {
+            document.querySelectorAll('#tabela-encomendas .delete-checkbox-row').forEach(cb => {
+                cb.checked = selectAllCheckbox.checked;
+            });
+            verificarSelecaoParaExcluirEncomendas();
+        }
+
+        function verificarSelecaoParaExcluirEncomendas() {
+            const algumSelecionado = Array.from(document.querySelectorAll('#tabela-encomendas .delete-checkbox-row:checked')).length > 0;
+            document.getElementById('btn-confirmar-excluir-encomendas').disabled = !algumSelecionado;
+
+            const todasLinhasVisiveis = document.querySelectorAll('#tabela-encomendas tbody tr .delete-checkbox-row');
+            if (todasLinhasVisiveis.length > 0) {
+                 const todasMarcadas = Array.from(todasLinhasVisiveis).every(cb => cb.checked);
+                 document.getElementById('selecionar-todas-encomendas').checked = todasMarcadas;
+            } else {
+                 document.getElementById('selecionar-todas-encomendas').checked = false;
+            }
+        }
+
+        async function excluirEncomendasSelecionadas() {
+            const checkboxesSelecionadas = document.querySelectorAll('#tabela-encomendas .delete-checkbox-row:checked');
+            const idsParaExcluir = Array.from(checkboxesSelecionadas).map(cb => parseInt(cb.value));
+
+            if (idsParaExcluir.length === 0) {
+                alert('Nenhuma encomenda selecionada para excluir.');
+                return;
+            }
+            if (!confirm(`Tem a certeza que deseja excluir ${idsParaExcluir.length} encomenda(s) selecionada(s)?`)) {
+                return;
+            }
+            try {
+                const response = await fetch(API_URL_ENCOMENDAS_EXCLUIR, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(idsParaExcluir)
+                });
+                if (response.ok) {
+                    alert('Encomenda(s) excluída(s) com sucesso (via API)!');
+                    carregarEncomendasDaApi();
+                    cancelarModoExclusaoEncomendas();
+                } else {
+                    const errorData = await response.json().catch(() => ({ message: `Erro ${response.status}: ${response.statusText}` }));
+                    alert(`Erro ao excluir encomendas via API: ${errorData.message}`);
+                }
+            } catch (error) {
+                console.error('Erro na requisição de exclusão de encomendas via API:', error);
+                alert('Ocorreu um erro na comunicação com o servidor.');
+            }
+        }
+
+        async function mudarEstadoEncomenda(encomendaId, novoEstado) {
+            if (!confirm(`Tem a certeza que deseja alterar o estado da encomenda ID ${encomendaId} para "${novoEstado}"?`)) {
+                // Se cancelar, reverter a seleção do dropdown para o estado original
+                // Isso requer saber o estado anterior, o que pode ser complexo sem recarregar.
+                // Por simplicidade, vamos recarregar os dados para refletir o estado atual do backend se a mudança falhar ou for cancelada.
+                // Ou, melhor, só fazer a chamada se confirmar. Se o usuário cancelar, o select já não mudou visualmente (ainda).
+                // Se o usuário confirmar, mas a API falhar, aí sim pode ser preciso recarregar.
+                carregarEncomendasDaApi(); // Recarrega para reverter a mudança visual do select caso o usuário cancele no confirm.
+                return;
+            }
+
+            try {
+                const response = await fetch(API_URL_ENCOMENDAS_MUDAR_ESTADO, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ id: parseInt(encomendaId), novoEstado: novoEstado })
+                });
+
+                if (response.ok) {
+                    alert(`Estado da encomenda ID ${encomendaId} alterado para "${novoEstado}" com sucesso!`);
+                    // Atualizar o estado no array local para evitar recarregar tudo, se desejar performance
+                    const encomendaIndex = todasAsEncomendasCarregadas.findIndex(e => e.encomendaId == encomendaId);
+                    if (encomendaIndex > -1) {
+                        todasAsEncomendasCarregadas[encomendaIndex].estado = novoEstado;
+                        // Não precisa chamar renderizarTabelaEncomendas se a UI já foi atualizada pelo select,
+                        // mas se houver outras informações que mudam com o estado, pode ser necessário.
+                    }
+                    // Ou simplesmente recarregar tudo da API para garantir consistência:
+                    // carregarEncomendasDaApi();
+                } else {
+                    const errorData = await response.json().catch(() => ({ message: `Erro ${response.status}: ${response.statusText}` }));
+                    alert(`Erro ao alterar estado da encomenda: ${errorData.message}`);
+                    carregarEncomendasDaApi(); // Recarrega para reverter a mudança visual do select
+                }
+            } catch (error) {
+                console.error('Erro ao alterar estado da encomenda:', error);
+                alert('Ocorreu um erro na comunicação com o servidor.');
+                carregarEncomendasDaApi(); // Recarrega para reverter
+            }
+        }
+
+    </script>
+}
