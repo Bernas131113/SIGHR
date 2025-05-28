@@ -1,0 +1,147 @@
+﻿@model SIGHR.Models.ViewModels.FaltaViewModel
+@{
+    ViewData["Title"] = "Registar Falta";
+    Layout = null; // Ou seu layout de colaborador
+}
+
+<!DOCTYPE html>
+<html lang="pt">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>@ViewData["Title"] - SIGHR</title>
+    <link rel="stylesheet" href="~/css/login.css" asp-append-version="true"> <!-- Seu CSS principal -->
+    <style>
+        /* Estilos básicos para centralizar e dar alguma aparência,
+                   adapte com seu login.css ou crie um css específico */
+        body {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            background-color: #f4f7f6;
+            padding: 20px;
+        }
+
+        .form-container {
+            background: white;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+            width: 100%;
+            max-width: 600px;
+        }
+
+            .form-container h1 {
+                text-align: center;
+                margin-bottom: 25px;
+            }
+
+        .form-group {
+            margin-bottom: 15px;
+        }
+
+        .form-label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: 500;
+        }
+
+        .form-control {
+            width: 100%;
+            padding: 10px;
+            border-radius: 5px;
+            border: 1px solid #ccc;
+        }
+
+        .btn-group {
+            display: flex;
+            justify-content: space-between;
+            gap: 10px;
+            margin-top: 20px;
+        }
+
+        .btn {
+            padding: 10px 15px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+
+        .btn-primary {
+            background-color: #007bff;
+            color: white;
+        }
+
+        .btn-secondary {
+            background-color: #6c757d;
+            color: white;
+        }
+
+        .text-danger {
+            color: #dc3545;
+            font-size: 0.9em;
+        }
+    </style>
+</head>
+<body>
+    <div class="form-container">
+        <h1>@ViewData["Title"]</h1>
+
+        @if (TempData["SuccessMessage"] != null)
+        {
+            <div class="alert alert-success" role="alert">
+                @TempData["SuccessMessage"]
+            </div>
+        }
+
+        <form asp-controller="Faltas" asp-action="Registar" method="post">
+            <div asp-validation-summary="ModelOnly" class="text-danger"></div>
+
+            <div class="form-group">
+                <label asp-for="DataFalta" class="form-label"></label>
+                <input asp-for="DataFalta" class="form-control" />
+                <span asp-validation-for="DataFalta" class="text-danger"></span>
+            </div>
+
+            <div class="row">
+                <div class="col-md-6 form-group">
+                    <label asp-for="Inicio" class="form-label"></label>
+                    <input asp-for="Inicio" class="form-control" />
+                    <span asp-validation-for="Inicio" class="text-danger"></span>
+                </div>
+                <div class="col-md-6 form-group">
+                    <label asp-for="Fim" class="form-label"></label>
+                    <input asp-for="Fim" class="form-control" />
+                    <span asp-validation-for="Fim" class="text-danger"></span>
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label asp-for="Motivo" class="form-label"></label>
+                <textarea asp-for="Motivo" class="form-control" rows="4" placeholder="Descreva o motivo da falta"></textarea>
+                <span asp-validation-for="Motivo" class="text-danger"></span>
+            </div>
+
+            @* CAMPO DE JUSTIFICAÇÃO (UPLOAD) REMOVIDO *@
+            @*
+            <div class="form-group">
+                <label asp-for="JustificacaoAnexo" class="form-label"></label>
+                <input asp-for="JustificacaoAnexo" type="file" class="form-control" accept=".pdf,.doc,.docx,.jpg,.jpeg,.png">
+                <span asp-validation-for="JustificacaoAnexo" class="text-danger"></span>
+            </div>
+            *@
+
+            <div class="btn-group">
+                <button type="submit" class="btn btn-primary">Registar Falta</button>
+                <a asp-controller="Home" asp-action="Index" class="btn btn-secondary">Voltar</a>
+            </div>
+        </form>
+    </div>
+
+    @section Scripts {
+        <partial name="_ValidationScriptsPartial" />
+    }
+</body>
+</html>
