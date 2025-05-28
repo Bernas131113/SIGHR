@@ -6,7 +6,7 @@ using Microsoft.EntityFrameworkCore.Migrations;
 namespace SIGHR.Migrations
 {
     /// <inheritdoc />
-    public partial class InitialSetupForSIGHRDatabase : Migration
+    public partial class SIGHRINICIAL : Migration
     {
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)

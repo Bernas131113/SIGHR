@@ -12,8 +12,8 @@ using SIGHR.Areas.Identity.Data;
 namespace SIGHR.Migrations
 {
     [DbContext(typeof(SIGHRContext))]
-    [Migration("20250526191918_InitialSetupForSIGHRDatabase")]
-    partial class InitialSetupForSIGHRDatabase
+    [Migration("20250528082628_SIGHRINICIAL")]
+    partial class SIGHRINICIAL
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
