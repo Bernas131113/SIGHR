@@ -6,7 +6,7 @@ using Microsoft.EntityFrameworkCore.Migrations;
 namespace SIGHR.Migrations
 {
     /// <inheritdoc />
-    public partial class SIGHRINICIAL : Migration
+    public partial class CreateInitialSchema : Migration
     {
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
@@ -30,7 +30,7 @@ namespace SIGHR.Migrations
                 columns: table => new
                 {
                     Id = table.Column<string>(type: "nvarchar(450)", nullable: false),
-                    PIN = table.Column<int>(type: "int", nullable: false),
+                    PinnedHash = table.Column<string>(type: "nvarchar(max)", nullable: true),
                     Tipo = table.Column<string>(type: "nvarchar(max)", nullable: true),
                     NomeCompleto = table.Column<string>(type: "nvarchar(max)", nullable: true),
                     UserName = table.Column<string>(type: "nvarchar(256)", maxLength: 256, nullable: true),

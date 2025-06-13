@@ -1,0 +1,151 @@
+﻿@* Views/Faltas/GestaoAdmin.cshtml *@
+@{
+    Layout = "_LayoutAdmin"; // Seu layout da área de ADMINISTRAÇÃO
+    ViewData["Title"] = "Gestão de Todas as Faltas";
+}
+@Html.AntiForgeryToken() @* Para o JavaScript pegar para POSTs seguros *@
+
+@section Styles {
+    <style>
+        thead th {
+            color: black; /* Ou #000000 */
+        }
+
+        /* Adapte os estilos da sua página de Encomendas ou Admin aqui */
+        .content .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            padding-bottom: 10px;
+            border-bottom: 1px solid #eee;
+        }
+
+            .content .header h1 {
+                margin: 0;
+                font-size: 1.8em;
+            }
+
+        .action-buttons .delete-btn, .action-buttons .edit-btn {
+            padding: 8px 12px;
+            margin-left: 5px;
+            background-color: #dc3545;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+
+        .action-buttons .edit-btn {
+            background-color: #ffc107;
+            color: black;
+        }
+
+        .search-bar {
+            margin-bottom: 20px;
+            margin-top: 15px;
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+
+        .form-control-sm {
+            padding: .35rem .6rem;
+            font-size: .875rem;
+            border-radius: .25rem;
+            border: 1px solid #ced4da;
+        }
+
+        .filter-btn {
+            padding: 7px 12px;
+            font-size: 0.9rem;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+
+            .filter-btn.apply {
+                background-color: #0d6efd;
+            }
+
+            .filter-btn.clear {
+                background-color: #6c757d;
+            }
+
+        .delete-checkbox {
+            display: none;
+            margin-right: 5px;
+            vertical-align: middle;
+        }
+
+        #nenhuma-falta-admin-view {
+            display: none;
+            text-align: center;
+            padding: 20px;
+            font-style: italic;
+        }
+        /* ID Único */
+        .table-container {
+            margin-top: 10px;
+        }
+    </style>
+}
+
+<div class="content" id="gestaoFaltasAdminContent">
+    <div class="header">
+        <h1>@ViewData["Title"]</h1>
+        <div class="action-buttons">
+            <button id="btn-ativar-excluir-faltas" class="delete-btn" onclick="ativarModoExclusaoFaltasAdmin()">Excluir</button>
+            <button id="btn-confirmar-excluir-faltas" class="delete-btn" onclick="excluirFaltasSelecionadasAdmin()" style="display:none;">Confirmar Exclusão</button>
+            <button id="btn-cancelar-excluir-faltas" class="edit-btn" onclick="cancelarModoExclusaoFaltasAdmin()" style="display:none;">Cancelar</button>
+        </div>
+    </div>
+
+    <div class="search-bar">
+        <input type="text" id="filtro-nome-falta" placeholder="Pesquisar por nome do utilizador" class="form-control-sm">
+        <input type="date" id="filtro-data-falta" class="form-control-sm">
+        <button class="filter-btn apply" onclick="aplicarFiltrosFaltasAdmin()">Filtrar</button>
+        <button class="filter-btn clear" onclick="limparFiltrosFaltasAdmin()">Limpar</button>
+    </div>
+
+    <div class="table-container">
+        <table id="tabela-gestao-todas-faltas" class="table table-striped table-bordered table-hover">
+            <thead>
+                <tr>
+                    <th style="width:30px;"><input type="checkbox" id="selecionar-todas-faltas" class="delete-checkbox" onchange="toggleSelecionarTodasFaltasAdmin(this)"></th>
+                    <th>Utilizador</th>
+                    <th>Data da Falta</th>
+                    <th>Início</th>
+                    <th>Fim</th>
+                    <th>Motivo</th>
+                    <th>Data do Registo</th>
+                </tr>
+            </thead>
+            <tbody>
+                @* Populado por JavaScript *@
+            </tbody>
+        </table>
+        <div id="nenhuma-falta-admin-view">
+            Nenhuma falta encontrada para os filtros aplicados.
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        // Passa as URLs da API para o script externo
+        const urlsApiGestaoFaltas = {
+            listar: '@Url.Action("ListarTodasApi", "Faltas")', // Aponta para a nova action API
+            excluir: '@Url.Action("ExcluirApi", "Faltas")'   // Aponta para a nova action API de exclusão
+        };
+        document.addEventListener('DOMContentLoaded', function() {
+            if (typeof inicializarGestaoFaltasAdmin === "function") { // Nome da função no JS
+                inicializarGestaoFaltasAdmin(urlsApiGestaoFaltas);
+            } else {
+                console.error("Função inicializarGestaoFaltasAdmin não encontrada.");
+            }
+        });
+    </script>
+    <script src="~/js/adminGestaoFaltas.js" asp-append-version="true"></script> @* Novo arquivo JS *@
+}

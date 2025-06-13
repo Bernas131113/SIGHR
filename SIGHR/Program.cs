@@ -1,9 +1,9 @@
 ﻿using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
+using SIGHR.Areas.Identity.Data;
 using Microsoft.Extensions.Logging;
 using System;
-using Microsoft.Extensions.Configuration;
-using SIGHR.Areas.Identity.Data;
+using Microsoft.Extensions.Configuration; // Para IConfiguration
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -15,7 +15,7 @@ var connectionString = builder.Configuration.GetConnectionString("DefaultConnect
 builder.Services.AddDbContext<SIGHRContext>(options =>
     options.UseSqlServer(connectionString));
 
-// 3. Configurar o ASP.NET Core Identity (Isso configura o IdentityConstants.ApplicationScheme)
+// 3. Configurar o ASP.NET Core Identity
 builder.Services.AddDefaultIdentity<SIGHRUser>(options =>
 {
     options.SignIn.RequireConfirmedAccount = false;
@@ -27,56 +27,39 @@ builder.Services.AddDefaultIdentity<SIGHRUser>(options =>
     options.Password.RequiredUniqueChars = 1;
     options.User.RequireUniqueEmail = true;
 })
-    .AddRoles<IdentityRole>() // Habilita o uso de Funções (Roles)
-    .AddEntityFrameworkStores<SIGHRContext>(); // Diz ao Identity para usar SEU SIGHRContext
+    .AddRoles<IdentityRole>()
+    // IPasswordHasher<SIGHRUser> é registrado por padrão pelo AddDefaultIdentity
+    .AddEntityFrameworkStores<SIGHRContext>();
 
-// 4. Configurar a Autenticação e os esquemas de Cookie Adicionais
-//    AddDefaultIdentity já chama AddAuthentication().AddCookie(IdentityConstants.ApplicationScheme)
-//    Então, aqui configuramos o DefaultChallengeScheme e adicionamos os outros esquemas.
+// 4. Configurar esquemas de autenticação adicionais
 builder.Services.AddAuthentication(options =>
 {
-    // Define o esquema que será usado para desafiar o usuário (redirecionar para login)
-    // quando a autorização falha e nenhum esquema específico é satisfeito pelo usuário.
-    // Se um colaborador anônimo tenta acessar FaltasController, ele será enviado para /Identity/Account/Login.
     options.DefaultChallengeScheme = IdentityConstants.ApplicationScheme;
-    options.DefaultSignInScheme = IdentityConstants.ApplicationScheme; // Usado para logins externos, etc.
-    options.DefaultAuthenticateScheme = IdentityConstants.ApplicationScheme; // Qual esquema usar para autenticar por padrão se não especificado
+    options.DefaultSignInScheme = IdentityConstants.ApplicationScheme;
+    options.DefaultAuthenticateScheme = IdentityConstants.ApplicationScheme;
 })
-    .AddCookie("AdminLoginScheme", options => // Seu esquema para Admin PIN login
+    .AddCookie("AdminLoginScheme", options =>
     {
-        options.LoginPath = "/Identity/Account/AdminLogin"; // Rota da sua Razor Page AdminLogin
-        options.AccessDeniedPath = "/Identity/Account/AccessDenied"; // Página de acesso negado
+        options.LoginPath = "/Identity/Account/AdminLogin";
+        options.AccessDeniedPath = "/Identity/Account/AccessDenied";
         options.ExpireTimeSpan = TimeSpan.FromMinutes(60);
         options.SlidingExpiration = true;
     })
-    .AddCookie("CollaboratorLoginScheme", options => // Seu esquema para Colaborador PIN login
+    .AddCookie("CollaboratorLoginScheme", options =>
     {
-        options.LoginPath = "/Identity/Account/CollaboratorPinLogin"; // Rota da sua Razor Page CollaboratorPinLogin
+        options.LoginPath = "/Identity/Account/CollaboratorPinLogin";
         options.AccessDeniedPath = "/Identity/Account/AccessDenied";
         options.ExpireTimeSpan = TimeSpan.FromHours(8);
         options.SlidingExpiration = true;
     });
-// O cookie para IdentityConstants.ApplicationScheme já foi configurado por AddDefaultIdentity.
-// Se você precisar customizar as opções dele (como o LoginPath se não for o padrão),
-// você pode usar builder.Services.ConfigureApplicationCookie(options => { ... }); APÓS AddDefaultIdentity.
-// Exemplo:
-// builder.Services.ConfigureApplicationCookie(options =>
-// {
-//     options.LoginPath = "/Identity/Account/Login"; // Caminho padrão, mas pode ser customizado
-// });
-
 
 // 5. Configurar outros serviços
 builder.Services.AddControllersWithViews();
-builder.Services.AddRazorPages(options =>
-{
-    // Convenções para Razor Pages, se necessário
-});
+builder.Services.AddRazorPages();
 
-// ----- Fim da configuração de Serviços -----
 var app = builder.Build();
 
-// ----- Configurar o Pipeline de Requisições HTTP -----
+// Pipeline HTTP
 if (!app.Environment.IsDevelopment())
 {
     app.UseExceptionHandler("/Home/Error");
@@ -86,21 +69,15 @@ else
 {
     app.UseDeveloperExceptionPage();
 }
-
 app.UseHttpsRedirection();
 app.UseStaticFiles();
 app.UseRouting();
+app.UseAuthentication();
+app.UseAuthorization();
+app.MapControllerRoute(name: "default", pattern: "{controller=Home}/{action=Index}/{id?}");
+app.MapRazorPages();
 
-// IMPORTANTE: Ordem correta do Middleware
-app.UseAuthentication(); // Processa os cookies de autenticação e estabelece a identidade do usuário
-app.UseAuthorization();  // Verifica se o usuário autenticado tem permissão para acessar o recurso
-
-app.MapControllerRoute(
-    name: "default",
-    pattern: "{controller=Home}/{action=Index}/{id?}");
-app.MapRazorPages(); // Mapeia Razor Pages
-
-// ----- Seeding de Dados Iniciais -----
+// Seeding
 using (var scope = app.Services.CreateScope())
 {
     var services = scope.ServiceProvider;
@@ -111,11 +88,10 @@ using (var scope = app.Services.CreateScope())
         var loggerFactory = services.GetRequiredService<ILoggerFactory>();
         var logger = loggerFactory.CreateLogger<Program>();
         var configuration = services.GetRequiredService<IConfiguration>();
+        var pinHasher = services.GetRequiredService<IPasswordHasher<SIGHRUser>>(); // Obter o hasher
 
         await SeedRolesAsync(roleManager, logger);
-        await SeedAdminUserForPinLoginAsync(userManager, roleManager, logger, configuration);
-        // Considere adicionar um método para semear usuários Colaboradores e Office se necessário
-        // await SeedCollaboratorUserAsync(userManager, roleManager, logger, configuration);
+        await SeedAdminUserWithHashedPinAsync(userManager, roleManager, pinHasher, logger, configuration);
     }
     catch (Exception ex)
     {
@@ -127,7 +103,7 @@ using (var scope = app.Services.CreateScope())
 
 app.Run();
 
-// ----- Métodos de Seeding (Coloque-os no final do Program.cs ou em uma classe separada) -----
+// ----- Métodos de Seeding -----
 async Task SeedRolesAsync(RoleManager<IdentityRole> roleManager, ILogger<Program> logger)
 {
     string[] roleNames = { "Admin", "Office", "Collaborator" };
@@ -136,78 +112,101 @@ async Task SeedRolesAsync(RoleManager<IdentityRole> roleManager, ILogger<Program
         if (!await roleManager.RoleExistsAsync(roleName))
         {
             var roleResult = await roleManager.CreateAsync(new IdentityRole(roleName));
-            if (roleResult.Succeeded) logger.LogInformation($"Role '{roleName}' criada.");
-            else foreach (var error in roleResult.Errors) logger.LogError($"Erro ao criar role '{roleName}': {error.Description}");
+            if (roleResult.Succeeded) logger.LogInformation("Role '{RoleName}' criada.", roleName);
+            else foreach (var error in roleResult.Errors) logger.LogError("Erro ao criar role '{RoleName}': {ErrorDescription}", roleName, error.Description);
         }
     }
 }
 
-async Task SeedAdminUserForPinLoginAsync(
+async Task SeedAdminUserWithHashedPinAsync(
     UserManager<SIGHRUser> userManager,
     RoleManager<IdentityRole> roleManager,
+    IPasswordHasher<SIGHRUser> pinHasher,
     ILogger<Program> logger,
     IConfiguration configuration)
 {
-    string? adminUserName = configuration["SeedAdminCredentials:UserName"];
-    string? adminEmail = configuration["SeedAdminCredentials:Email"];
-    string? adminPIN_str = configuration["SeedAdminCredentials:PIN"];
-    string? adminNomeCompleto = configuration["SeedAdminCredentials:NomeCompleto"];
-    string? adminPassword = configuration["SeedAdminCredentials:Password"]; // Senha para o Identity
+    string? configUserName = configuration["SeedAdminCredentials:UserName"];
+    string? configEmail = configuration["SeedAdminCredentials:Email"];
+    string? configPIN_str = configuration["SeedAdminCredentials:PIN"];
+    string? configNomeCompleto = configuration["SeedAdminCredentials:NomeCompleto"];
+    string? configPasswordForIdentity = configuration["SeedAdminCredentials:Password"]; // Para senha do Identity
 
     string adminRoleName = "Admin";
 
-    if (string.IsNullOrEmpty(adminUserName)) { adminUserName = "bernardo.alves"; logger.LogWarning("SeedAdminCredentials:UserName não configurado, usando fallback."); }
-    if (string.IsNullOrEmpty(adminEmail)) { adminEmail = $"default_{adminUserName}@sighr-placeholder.com"; logger.LogWarning("SeedAdminCredentials:Email não configurado, usando fallback."); }
-    if (string.IsNullOrEmpty(adminPIN_str) || !int.TryParse(adminPIN_str, out int adminPIN)) { adminPIN = 1311; logger.LogWarning("SeedAdminCredentials:PIN não configurado ou inválido, usando fallback."); }
-    if (string.IsNullOrEmpty(adminNomeCompleto)) { adminNomeCompleto = "Bernardo Alves (Admin)"; }
-    if (string.IsNullOrEmpty(adminPassword)) { adminPassword = Guid.NewGuid().ToString() + "XyZ789#"; logger.LogInformation("SeedAdminCredentials:Password não configurado, gerando senha dummy."); }
+    // Validação e fallbacks
+    if (string.IsNullOrEmpty(configUserName)) { configUserName = "bernardo.alves"; logger.LogWarning("SeedAdminCredentials:UserName não configurado, usando fallback 'bernardo.alves'."); }
+    if (string.IsNullOrEmpty(configEmail)) { configEmail = $"default_{configUserName}@sighr-placeholder.com"; logger.LogWarning("SeedAdminCredentials:Email não configurado, usando fallback para {UserEmail}.", configEmail); }
+    if (string.IsNullOrEmpty(configPIN_str) || !int.TryParse(configPIN_str, out int adminPIN_int)) { adminPIN_int = 1311; logger.LogWarning("SeedAdminCredentials:PIN não configurado ou inválido, usando fallback 1311."); }
+    if (string.IsNullOrEmpty(configNomeCompleto)) { configNomeCompleto = "Bernardo Alves (Admin)"; }
+    if (string.IsNullOrEmpty(configPasswordForIdentity)) { configPasswordForIdentity = Guid.NewGuid().ToString() + "XyZ789#"; logger.LogInformation("SeedAdminCredentials:Password não configurado para Identity. Gerando uma senha dummy forte."); }
 
-    var existingUser = await userManager.FindByNameAsync(adminUserName);
+    var existingUser = await userManager.FindByNameAsync(configUserName);
+
     if (existingUser == null)
     {
         var adminUser = new SIGHRUser
         {
-            UserName = adminUserName,
-            Email = adminEmail,
+            UserName = configUserName,
+            Email = configEmail,
             EmailConfirmed = true,
-            NomeCompleto = adminNomeCompleto,
-            PIN = adminPIN,
+            NomeCompleto = configNomeCompleto,
             Tipo = adminRoleName
+            // PinnedHash será definido abaixo
         };
-        var result = await userManager.CreateAsync(adminUser, adminPassword);
+        adminUser.PinnedHash = pinHasher.HashPassword(adminUser, adminPIN_int.ToString());
+
+        var result = await userManager.CreateAsync(adminUser, configPasswordForIdentity); // Senha dummy para Identity
         if (result.Succeeded)
         {
-            logger.LogInformation($"Usuário '{adminUser.UserName}' (Admin) criado.");
+            logger.LogInformation("Usuário '{UserName}' (Admin) criado com PIN hasheado.", adminUser.UserName);
             if (await roleManager.RoleExistsAsync(adminRoleName))
             {
                 var addToRoleResult = await userManager.AddToRoleAsync(adminUser, adminRoleName);
-                if (addToRoleResult.Succeeded) logger.LogInformation($"Usuário '{adminUser.UserName}' adicionado ao role '{adminRoleName}'.");
-                else foreach (var error in addToRoleResult.Errors) logger.LogError($"Erro ao adicionar usuário ao role: {error.Description}");
+                if (addToRoleResult.Succeeded) logger.LogInformation("Usuário '{UserName}' adicionado ao role '{AdminRoleName}'.", adminUser.UserName, adminRoleName);
+                else foreach (var error in addToRoleResult.Errors) logger.LogError("Erro ao adicionar usuário '{UserName}' ao role '{AdminRoleName}': {ErrorDescription}", adminUser.UserName, adminRoleName, error.Description);
             }
-            else logger.LogWarning($"Role '{adminRoleName}' não encontrada.");
+            else logger.LogWarning("Role '{AdminRoleName}' não encontrada.", adminRoleName);
         }
-        else foreach (var error in result.Errors) logger.LogError($"Erro ao criar usuário '{adminUser.UserName}': {error.Description}");
+        else foreach (var error in result.Errors) logger.LogError("Erro ao criar usuário '{UserName}': {ErrorDescription}", adminUser.UserName, error.Description);
     }
-    else
+    else // Usuário existente
     {
-        logger.LogInformation($"Usuário '{adminUserName}' (Admin) já existe. Verificando/atualizando.");
+        logger.LogInformation("Usuário '{UserName}' (Admin) já existe. Verificando/atualizando PinnedHash, Tipo, Role.", configUserName);
         bool needsUpdate = false;
-        if (existingUser.PIN != adminPIN) { existingUser.PIN = adminPIN; needsUpdate = true; }
+        var currentPinVerification = PasswordVerificationResult.Failed;
+        if (!string.IsNullOrEmpty(existingUser.PinnedHash))
+        {
+            currentPinVerification = pinHasher.VerifyHashedPassword(existingUser, existingUser.PinnedHash, adminPIN_int.ToString());
+        }
+
+        if (currentPinVerification == PasswordVerificationResult.Failed)
+        {
+            existingUser.PinnedHash = pinHasher.HashPassword(existingUser, adminPIN_int.ToString());
+            needsUpdate = true;
+            logger.LogInformation("PinnedHash atualizado para o usuário '{UserName}'.", configUserName);
+        }
+        else if (currentPinVerification == PasswordVerificationResult.SuccessRehashNeeded)
+        {
+            existingUser.PinnedHash = pinHasher.HashPassword(existingUser, adminPIN_int.ToString()); // Re-hash com o algoritmo mais recente
+            needsUpdate = true;
+            logger.LogInformation("PinnedHash re-hasheado para o usuário '{UserName}' devido a algoritmo atualizado.", configUserName);
+        }
+
+
         if (existingUser.Tipo != adminRoleName) { existingUser.Tipo = adminRoleName; needsUpdate = true; }
-        if (adminNomeCompleto != null && existingUser.NomeCompleto != adminNomeCompleto) { existingUser.NomeCompleto = adminNomeCompleto; needsUpdate = true; }
+        if (configNomeCompleto != null && existingUser.NomeCompleto != configNomeCompleto) { existingUser.NomeCompleto = configNomeCompleto; needsUpdate = true; }
+
         if (needsUpdate)
         {
             var updateResult = await userManager.UpdateAsync(existingUser);
-            if (updateResult.Succeeded) logger.LogInformation($"Dados atualizados para '{adminUserName}'.");
-            else foreach (var error in updateResult.Errors) logger.LogError($"Erro ao atualizar dados de '{adminUserName}': {error.Description}");
+            if (updateResult.Succeeded) logger.LogInformation("Dados atualizados para '{UserName}'.", configUserName);
+            else foreach (var error in updateResult.Errors) logger.LogError("Erro ao atualizar dados de '{UserName}': {ErrorDescription}", configUserName, error.Description);
         }
         if (!await userManager.IsInRoleAsync(existingUser, adminRoleName) && await roleManager.RoleExistsAsync(adminRoleName))
         {
             var addToRoleResult = await userManager.AddToRoleAsync(existingUser, adminRoleName);
-            if (addToRoleResult.Succeeded) logger.LogInformation($"Usuário '{adminUserName}' (existente) adicionado ao role '{adminRoleName}'.");
-            else foreach (var error in addToRoleResult.Errors) logger.LogError($"Erro ao adicionar usuário existente ao role: {error.Description}");
+            if (addToRoleResult.Succeeded) logger.LogInformation("Usuário '{UserName}' (existente) adicionado ao role '{AdminRoleName}'.", configUserName, adminRoleName);
+            else foreach (var error in addToRoleResult.Errors) logger.LogError("Erro ao adicionar usuário '{UserName}' (existente) ao role '{AdminRoleName}': {ErrorDescription}", configUserName, adminRoleName, error.Description);
         }
     }
 }
-// Você precisaria de um método similar para semear usuários Colaboradores e Office,
-// garantindo que eles sejam adicionados aos roles "Collaborator" e "Office" respectivamente.

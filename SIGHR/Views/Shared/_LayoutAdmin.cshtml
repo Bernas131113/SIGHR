@@ -30,8 +30,8 @@
                 <li class="@(ViewContext.RouteData.Values["controller"]?.ToString() == "Encomendas" ? "active" : "")">
                     <a asp-controller="Encomendas" asp-action="Index">Encomendas</a>
                 </li>
-                <li class="@(ViewContext.RouteData.Values["controller"]?.ToString() == "Faltas" ? "active" : "")">
-                    <a asp-controller="Faltas" asp-action="Index">Faltas</a>
+                <li class="@(ViewContext.RouteData.Values["controller"]?.ToString() == "Faltas" && ViewContext.RouteData.Values["action"]?.ToString() == "GestaoAdmin" ? "active" : "")">
+                    <a asp-controller="Faltas" asp-action="GestaoAdmin">Gestão de Faltas</a>
                 </li>
                 @* Adicione outros links de admin aqui *@
             </ul>

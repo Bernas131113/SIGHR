@@ -2,18 +2,21 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore; // Para métodos de extensão do EF Core               // Para SIGHRContext e SIGHRUser
-using SIGHR.Models;              // Para a entidade Falta
-using SIGHR.Models.ViewModels;   // Para FaltaViewModel e FaltaComUserNameViewModel
+using Microsoft.EntityFrameworkCore;
+using SIGHR.Models;
+using SIGHR.Models.ViewModels;
 using System;
+using System.Collections.Generic; // Para List<T>
 using System.Linq;
-using System.Security.Claims;    // Para ClaimsPrincipal, FindFirstValue, ClaimTypes
+using System.Security.Claims;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using SIGHR.Areas.Identity.Data;
 
 namespace SIGHR.Controllers
 {
+    // A autorização no nível do controller pode ser mais genérica se as actions tiverem a sua própria.
+    // Ou, se a maioria das actions for para colaboradores/office/admin, pode ser:
     [Authorize(Roles = "Admin,Office,Collaborator", AuthenticationSchemes = "Identity.Application,AdminLoginScheme,CollaboratorLoginScheme")]
     public class FaltasController : Controller
     {
@@ -28,28 +31,28 @@ namespace SIGHR.Controllers
             _logger = logger;
         }
 
-        // GET: Faltas/Registar
+        // --- ACTIONS PARA COLABORADORES (E ADMINS/OFFICE PARA SUAS PRÓPRIAS FALTAS) ---
+
+        // GET: /Faltas/Registar (Qualquer usuário logado e autorizado nos roles acima pode registrar UMA FALTA PARA SI MESMO)
+        [HttpGet]
         public IActionResult Registar()
         {
-            // Assumindo que FaltaViewModel.Motivo foi ajustado para ter um inicializador padrão (string.Empty)
-            // ou você removeu o modificador 'required' dele.
             var model = new FaltaViewModel
             {
-                DataFalta = DateTime.Today
+                DataFalta = DateTime.Today,
+                Motivo = string.Empty // Se Motivo no ViewModel for 'required string' sem inicializador padrão
             };
-            return View(model);
+            return View(model); // Retorna Views/Faltas/Registar.cshtml
         }
 
-        // POST: Faltas/Registar
         [HttpPost]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Registar(FaltaViewModel model)
         {
-            var userId = User.FindFirstValue(ClaimTypes.NameIdentifier); // Agora deve funcionar
+            var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
             if (string.IsNullOrEmpty(userId))
             {
-                _logger.LogWarning("Tentativa de registar falta sem ID de usuário (não autenticado).");
-                return Unauthorized("Utilizador não autenticado ou não encontrado.");
+                return Unauthorized("Utilizador não autenticado.");
             }
 
             if (model.Inicio >= model.Fim)
@@ -59,12 +62,12 @@ namespace SIGHR.Controllers
 
             if (ModelState.IsValid)
             {
-                var currentUser = await _userManager.FindByIdAsync(userId);
+                var currentUser = await _userManager.FindByIdAsync(userId); // Para logging
                 string userNameForLog = currentUser?.UserName ?? "UsuárioDesconhecido";
 
                 var falta = new Falta
                 {
-                    UtilizadorId = userId,
+                    UtilizadorId = userId, // A falta é SEMPRE para o usuário logado aqui
                     Data = DateTime.Now,
                     DataFalta = model.DataFalta,
                     Inicio = model.Inicio,
@@ -75,73 +78,126 @@ namespace SIGHR.Controllers
                 _context.Faltas.Add(falta);
                 await _context.SaveChangesAsync();
 
-                _logger.LogInformation($"Falta registrada com sucesso para o usuário '{userNameForLog}' (ID: {userId}).");
+                _logger.LogInformation($"Falta registrada com sucesso pelo usuário '{userNameForLog}' (ID: {userId}) para si mesmo.");
                 TempData["SuccessMessage"] = "Falta registrada com sucesso!";
                 return RedirectToAction(nameof(MinhasFaltas));
             }
 
-            _logger.LogWarning($"Falha na validação ao tentar registar falta para o usuário ID: {userId}. Model Erros: {string.Join(", ", ModelState.Values.SelectMany(v => v.Errors).Select(e => e.ErrorMessage))}");
             return View(model);
         }
 
-        // GET: Faltas/MinhasFaltas
+        // GET: /Faltas/MinhasFaltas (Qualquer usuário logado e autorizado pode ver AS SUAS PRÓPRIAS FALTAS)
+        [HttpGet]
         public async Task<IActionResult> MinhasFaltas()
         {
-            var userId = User.FindFirstValue(ClaimTypes.NameIdentifier); // Agora deve funcionar
+            var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
             if (string.IsNullOrEmpty(userId))
             {
                 return Unauthorized("Utilizador não autenticado.");
             }
 
             var faltasDoUsuario = await _context.Faltas
-                                            .Where(f => f.UtilizadorId == userId)
-                                            .OrderByDescending(f => f.DataFalta)
-                                            .ThenBy(f => f.Inicio)
-                                            .Select(f => new FaltaComUserNameViewModel
-                                            {
-                                                Id = f.Id,
-                                                DataFalta = f.DataFalta,
-                                                Inicio = f.Inicio,
-                                                Fim = f.Fim,
-                                                Motivo = f.Motivo,
-                                                DataRegisto = f.Data,
-                                                UserName = f.User != null ? (f.User.NomeCompleto ?? f.User.UserName ?? "N/A") : "N/A"
-                                            })
-                                            .ToListAsync(); // Agora deve funcionar
-            return View(faltasDoUsuario);
+                .Where(f => f.UtilizadorId == userId) // Filtra apenas as faltas do usuário logado
+                .Include(f => f.User) // Opcional: se quiser mostrar o nome do usuário (será sempre o mesmo aqui)
+                .OrderByDescending(f => f.DataFalta).ThenBy(f => f.Inicio)
+                .Select(f => new FaltaComUserNameViewModel
+                {
+                    Id = f.Id,
+                    DataFalta = f.DataFalta,
+                    Inicio = f.Inicio,
+                    Fim = f.Fim,
+                    Motivo = f.Motivo,
+                    DataRegisto = f.Data,
+                    UserName = f.User != null ? (f.User.NomeCompleto ?? f.User.UserName ?? "N/A") : "N/A"
+                })
+                .ToListAsync();
+            return View(faltasDoUsuario); // Retorna Views/Faltas/MinhasFaltas.cshtml
         }
 
-        // Exemplo de como um Admin/Office poderia ver todas as faltas:
-        [Authorize(Roles = "Admin,Office", AuthenticationSchemes = "Identity.Application,AdminLoginScheme,CollaboratorLoginScheme")]
-        public async Task<IActionResult> TodasAsFaltas(string? filtroNome, DateTime? filtroData)
+
+        // --- ACTIONS PARA ADMINISTRAÇÃO (ADMIN/OFFICE) ---
+
+        // GET: /Faltas/GestaoAdmin (Nome da action para a view de gestão de todas as faltas)
+        [HttpGet]
+        [Authorize(Roles = "Admin,Office", AuthenticationSchemes = "Identity.Application,AdminLoginScheme")] // Apenas Admin e Office
+        public IActionResult GestaoAdmin()
         {
-            IQueryable<Falta> query = _context.Faltas.Include(f => f.User); // Include agora deve funcionar
+            ViewData["Title"] = "Gestão de Todas as Faltas";
+            return View(); // Retorna Views/Faltas/GestaoAdmin.cshtml
+        }
 
-            if (!string.IsNullOrEmpty(filtroNome))
+        // GET API: /Faltas/ListarTodasApi (API para popular a tabela de gestão do admin)
+        [HttpGet]
+        [Authorize(Roles = "Admin,Office", AuthenticationSchemes = "Identity.Application,AdminLoginScheme")]
+        public async Task<IActionResult> ListarTodasApi(string? filtroNome, DateTime? filtroData)
+        {
+            try
             {
-                query = query.Where(f => f.User != null && f.User.UserName != null && f.User.UserName.Contains(filtroNome));
-            }
-            if (filtroData.HasValue)
-            {
-                query = query.Where(f => f.DataFalta.Date == filtroData.Value.Date);
-            }
+                _logger.LogInformation("API ListarTodasApi chamada com filtroNome: {FiltroNome}, filtroData: {FiltroData}", filtroNome, filtroData);
+                IQueryable<Falta> query = _context.Faltas.Include(f => f.User);
 
-            var todasAsFaltas = await query
-                                    .OrderByDescending(f => f.DataFalta)
-                                    .ThenBy(f => f.User != null ? f.User.UserName : "")
-                                    .ThenBy(f => f.Inicio)
-                                    .Select(f => new FaltaComUserNameViewModel
-                                    {
-                                        Id = f.Id,
-                                        UserName = f.User != null ? (f.User.NomeCompleto ?? f.User.UserName ?? "Desconhecido") : "Desconhecido",
-                                        DataFalta = f.DataFalta,
-                                        Inicio = f.Inicio,
-                                        Fim = f.Fim,
-                                        Motivo = f.Motivo,
-                                        DataRegisto = f.Data
-                                    })
-                                    .ToListAsync(); // Agora deve funcionar
-            return View(todasAsFaltas);
+                if (!string.IsNullOrEmpty(filtroNome))
+                {
+                    query = query.Where(f => f.User != null &&
+                                             ((f.User.UserName != null && f.User.UserName.Contains(filtroNome)) ||
+                                              (f.User.NomeCompleto != null && f.User.NomeCompleto.Contains(filtroNome))));
+                }
+                if (filtroData.HasValue)
+                {
+                    query = query.Where(f => f.DataFalta.Date == filtroData.Value.Date);
+                }
+
+                var faltas = await query
+                    .OrderByDescending(f => f.DataFalta)
+                    .ThenBy(f => f.User != null ? f.User.UserName : "")
+                    .ThenBy(f => f.Inicio)
+                    .Select(f => new
+                    {
+                        faltaId = f.Id,
+                        nomeUtilizador = f.User != null ? (f.User.NomeCompleto ?? f.User.UserName ?? "Desconhecido") : "Desconhecido",
+                        dataFalta = f.DataFalta.ToString("yyyy-MM-dd"),
+                        inicio = f.Inicio.ToString(@"hh\:mm\:ss"),
+                        fim = f.Fim.ToString(@"hh\:mm\:ss"),
+                        motivo = f.Motivo,
+                        dataRegisto = f.Data.ToString("yyyy-MM-dd")
+                    })
+                    .ToListAsync();
+                return Ok(faltas);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Erro ao listar todas as faltas via API.");
+                return StatusCode(500, new { message = "Erro ao processar a solicitação de listagem de faltas." });
+            }
+        }
+
+        // POST API: /Faltas/ExcluirApi (API para excluir faltas selecionadas pelo admin)
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        [Authorize(Roles = "Admin", AuthenticationSchemes = "Identity.Application,AdminLoginScheme")] // SOMENTE Admin pode excluir
+        public async Task<IActionResult> ExcluirApi([FromBody] List<long> idsParaExcluir)
+        {
+            if (idsParaExcluir == null || !idsParaExcluir.Any())
+            {
+                return BadRequest(new { message = "Nenhum ID de falta fornecido." });
+            }
+            _logger.LogInformation("API ExcluirApi chamada para IDs: {Ids} pelo usuário {User}", string.Join(", ", idsParaExcluir), User.Identity?.Name);
+            try
+            {
+                var faltasParaRemover = await _context.Faltas.Where(f => idsParaExcluir.Contains(f.Id)).ToListAsync();
+                if (!faltasParaRemover.Any())
+                {
+                    return NotFound(new { message = "Nenhuma das faltas selecionadas foi encontrada." });
+                }
+                _context.Faltas.RemoveRange(faltasParaRemover);
+                await _context.SaveChangesAsync();
+                return Ok(new { message = $"{faltasParaRemover.Count} falta(s) excluída(s) com sucesso." });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Erro ao excluir faltas via API.");
+                return StatusCode(500, new { message = "Ocorreu um erro ao excluir as faltas." });
+            }
         }
     }
 }
