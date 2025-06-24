@@ -1,58 +1,245 @@
-﻿@{
-    ViewData["Title"] = "Painel do Administrador - Registo de Entradas"; // Título mais específico
-    Layout = "_LayoutAdmin"; // Especifica o layout
+﻿@model IEnumerable<SIGHR.Models.ViewModels.HorarioAdminViewModel>
+@{
+    ViewData["Title"] = "Registo de Entradas - Administração";
+    Layout = "_LayoutAdmin"; // Certifique-se de que este é o seu layout de admin
 }
 
-@* O conteúdo da tag <main> do _LayoutAdmin.cshtml será substituído por isto: *@
+@section Styles {
+    <style>
+        /* Estilos da sua página de Admin - Adapte conforme necessário */
+        .content .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            padding-bottom: 10px;
+            border-bottom: 1px solid #eee;
+        }
 
-<style>
-    thead th {
-        color: black; /* Ou #000000 */
-    }
+            .content .header h2 { /* Se você usa h2 para o título da seção */
+                margin: 0;
+                font-size: 1.8em;
+            }
+
+            .content .header h1 { /* Se você usa h1 para o título da seção */
+                margin: 0;
+                font-size: 1.8em;
+            }
 
 
-</style>
+        .action-buttons .btn,
+        .action-buttons .download-btn { /* Estilo comum para botões no header */
+            padding: 8px 15px;
+            margin-left: 10px;
+            font-size: 0.9rem;
+            border-radius: 4px;
+            cursor: pointer;
+            text-decoration: none;
+            border: 1px solid transparent;
+            color: white;
+        }
 
-<h1>Área de Administração</h1> @* Pode ser redundante se o layout já tiver um título geral *@
+        .action-buttons .download-btn {
+            background-color: #17a2b8; /* Cor info (ciano) do Bootstrap */
+            border-color: #17a2b8;
+        }
+
+            .action-buttons .download-btn:hover {
+                background-color: #138496;
+                border-color: #117a8b;
+            }
+        /* Adicione estilos para .edit-btn, .delete-btn se os mantiver */
+
+
+        .search-bar {
+            margin-bottom: 20px;
+            margin-top: 15px;
+            display: flex;
+            flex-wrap: wrap; /* Permite que os itens quebrem linha em telas menores */
+            gap: 10px;
+            align-items: center;
+        }
+
+            .search-bar input[type="text"],
+            .search-bar input[type="date"],
+            .search-bar .form-control { /* Estilo para inputs Bootstrap */
+                padding: .375rem .75rem;
+                font-size: 1rem;
+                line-height: 1.5;
+                color: #495057;
+                background-color: #fff;
+                background-clip: padding-box;
+                border: 1px solid #ced4da;
+                border-radius: .25rem;
+                transition: border-color .15s ease-in-out,box-shadow .15s ease-in-out;
+                flex-grow: 1; /* Faz os inputs crescerem para preencher o espaço */
+                min-width: 180px; /* Largura mínima para inputs */
+            }
+
+                .search-bar input[type="text"]:focus,
+                .search-bar input[type="date"]:focus {
+                    border-color: #86b7fe;
+                    outline: 0;
+                    box-shadow: 0 0 0 .2rem rgba(13,110,253,.25);
+                }
+
+
+            .search-bar .filter-btn {
+                padding: .375rem .75rem;
+                font-size: 1rem;
+                border-radius: .25rem;
+                color: #fff;
+                border: 1px solid transparent;
+                cursor: pointer;
+                line-height: 1.5;
+            }
+
+        .filter-btn.apply {
+            background-color: #0d6efd; /* Azul primário Bootstrap */
+            border-color: #0d6efd;
+        }
+
+            .filter-btn.apply:hover {
+                background-color: #0b5ed7;
+                border-color: #0a58ca;
+            }
+
+        .filter-btn.clear {
+            background-color: #6c757d; /* Cinza secundário Bootstrap */
+            border-color: #6c757d;
+            color: #fff; /* Garante que o texto seja branco */
+            text-decoration: none; /* Para a tag <a> */
+        }
+
+            .filter-btn.clear:hover {
+                background-color: #5a6268;
+                border-color: #545b62;
+            }
+
+        .table-container {
+            margin-top: 20px; /* Aumentar espaço acima da tabela */
+        }
+
+        .table thead th {
+            color: black;
+            vertical-align: middle;
+            background-color: #f8f9fa; /* Fundo leve para cabeçalho */
+            border-bottom-width: 2px; /* Linha mais grossa abaixo do cabeçalho */
+        }
+
+        .table tbody td {
+            vertical-align: middle;
+        }
+
+        .no-records {
+            text-align: center;
+            padding: 20px;
+            font-style: italic;
+            color: #6c757d; /* Cinza mais escuro para a mensagem */
+            background-color: #f8f9fa;
+            border: 1px solid #dee2e6;
+            border-radius: .25rem;
+            margin-top: 20px;
+        }
+    </style>
+}
+
 <div class="content">
     <div class="header">
-        <h2>Registo de Entradas</h2>
+        <h2>@ViewData["Title"]</h2> @* Usando h2 como no seu HTML original para esta seção *@
         <div class="action-buttons">
-            <button onclick="downloadExcel()" class="download-btn">Download Excel</button>
+            <button type="button" onclick="downloadHorariosExcelComFiltros()" class="btn download-btn">Download Excel</button>
+            @*
             <button id="editar-btn" class="edit-btn" onclick="habilitarEdicao()">Editar</button>
             <button id="concluir-btn" class="edit-btn" onclick="salvarEdicoes()" style="display: none;">Concluido</button>
             <button id="btn-excluir" class="delete-btn" onclick="ativarModoExclusao()">Excluir</button>
+            *@
         </div>
     </div>
 
-    <div class="search-bar">
-        <input type="text" id="filtro-nome" placeholder="Pesquisar por nome">
-        <input type="date" id="filtro-data" placeholder="Pesquisar por data (DD/MM/AAAA)">
-        <button class="filter-btn" onclick="aplicarFiltros()">Filtrar</button>
-    </div>
-    <div class="table-container">
-        <table id="tabela-horariosadmin" class="table admin-table">
-            @* Adicionada classe 'admin-table' *@
-            <thead>
-                <tr>
-                    <th>Nome</th>
-                    <th>Data</th>
-                    <th>Hora Entrada</th>
-                    <th>Entrada Almoço</th>
-                    <th>Saída Almoço</th>
-                    <th>Hora Saída</th>
-                    <th>Total De Horas</th>
-                    <th>Localização</th>
-                    <th></th>
-                </tr>
-            </thead>
-            <tbody></tbody>
-        </table>
-    </div>
+    <form method="get" asp-action="Index" asp-controller="Admin" class="search-bar" id="formFiltrosHorarios">
+        <input type="text" name="filtroNome" id="inputFiltroNomeAdmin" value="@ViewData["FiltroNomeAtual"]" placeholder="Pesquisar por nome do utilizador" class="form-control" />
+        <input type="date" name="filtroData" id="inputFiltroDataAdmin" value="@ViewData["FiltroDataAtual"]" class="form-control" />
+        <button type="submit" class="btn filter-btn apply">Filtrar</button>
+        <a asp-action="Index" asp-controller="Admin" class="btn filter-btn clear">Limpar</a>
+    </form>
+
+    @if (Model == null || !Model.Any())
+    {
+        <p class="no-records">Nenhum registo de ponto encontrado para os filtros aplicados.</p>
+    }
+    else
+    {
+        <div class="table-responsive table-container">
+            <table id="tabela-horarios-admin" class="table table-striped table-hover table-bordered admin-table">
+                <thead>
+                    <tr>
+                        <th>Utilizador</th>
+                        <th>Data</th>
+                        <th>Hora Entrada</th>
+                        <th>Saída Almoço</th>
+                        <th>Entrada Almoço</th>
+                        <th>Saída</th>
+                        <th>Total de Horas</th>
+                        @* <th>Localização</th> *@
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var item in Model)
+                    {
+                        <tr>
+                            <td>@Html.DisplayFor(modelItem => item.NomeUtilizador)</td>
+                            <td>@item.Data.ToString("dd/MM/yyyy")</td>
+                            <td>@(item.HoraEntrada == TimeSpan.Zero ? "--:--" : item.HoraEntrada.ToString(@"hh\:mm"))</td>
+                            <td>@(item.SaidaAlmoco == TimeSpan.Zero ? "--:--" : item.SaidaAlmoco.ToString(@"hh\:mm"))</td>
+                            <td>@(item.EntradaAlmoco == TimeSpan.Zero ? "--:--" : item.EntradaAlmoco.ToString(@"hh\:mm"))</td>
+                            <td>@(item.HoraSaida == TimeSpan.Zero ? "--:--" : item.HoraSaida.ToString(@"hh\:mm"))</td>
+                            <td>@Html.DisplayFor(modelItem => item.TotalHorasTrabalhadas)</td>
+                            @* <td>@Html.DisplayFor(modelItem => item.Localizacao)</td> *@
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    }
 </div>
 
 @section Scripts {
-@* Se você tinha um <script src="script.js"></script> específico para esta página, coloque-o aqui *@
-@* <script src="~/js/adminDashboardScript.js" asp-append-version="true"></script> *@
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.17.2/xlsx.full.min.js"></script> @* Mover scripts externos para o layout se forem comuns, ou para a seção Scripts se específicos *@
+    @* Removido xlsx.full.min.js pois o download é do lado do servidor *@
+    @* <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.17.2/xlsx.full.min.js"></script> *@
+    <script type="text/javascript">
+        // Função para o botão de Download Excel
+        function downloadHorariosExcelComFiltros() {
+            // Certifique-se de que os IDs aqui correspondem aos IDs dos seus inputs de filtro
+            const filtroNomeInput = document.getElementById('inputFiltroNomeAdmin');
+            const filtroDataInput = document.getElementById('inputFiltroDataAdmin');
+
+            const filtroNome = filtroNomeInput ? filtroNomeInput.value : '';
+            const filtroData = filtroDataInput ? filtroDataInput.value : '';
+
+            let url = '@Url.Action("DownloadHorariosExcel", "Admin")'; // Gera a URL base da action
+            const params = new URLSearchParams();
+
+            if (filtroNome) {
+                params.append('filtroNome', filtroNome);
+            }
+            if (filtroData) {
+                params.append('filtroData', filtroData);
+            }
+
+            if (params.toString()) {
+                url += '?' + params.toString();
+            }
+
+            console.log("URL para download do Excel:", url); // Para depuração
+            window.location.href = url; // Redireciona para iniciar o download
+        }
+
+        // Outras funções JavaScript específicas desta página podem ir aqui
+        // Ex: habilitarEdicao, salvarEdicoes, ativarModoExclusao (se você for implementá-las)
+        // function habilitarEdicao() { alert("Editar em tabela a ser implementado."); }
+        // function salvarEdicoes() { alert("Salvar edições a ser implementado."); }
+        // function ativarModoExclusao() { alert("Excluir em tabela a ser implementado."); }
+
+    </script>
 }

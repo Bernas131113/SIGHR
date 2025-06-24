@@ -1,28 +1,33 @@
 ﻿// Controllers/RegistoPontoController.cs
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Identity;       // Para UserManager e IdentityConstants
 using Microsoft.AspNetCore.Mvc;
-using SIGHR.Areas.Identity.Data;
-using SIGHR.Models; // Namespace para a entidade Horario
+using Microsoft.EntityFrameworkCore;    // Para Include, ToListAsync, etc.
+using SIGHR.Areas.Identity.Data;                // Para SIGHRContext e SIGHRUser
+using SIGHR.Models;                 // Para a entidade Horario
+using SIGHR.Models.ViewModels;      // Para HorarioColaboradorViewModel
 using System;
+using System.Collections.Generic;
 using System.Linq;
+using System.Security.Claims;       // Para ClaimsPrincipal, FindFirstValue, ClaimTypes
 using System.Threading.Tasks;
-using System.Security.Claims;
-using Microsoft.EntityFrameworkCore; // Para FirstOrDefaultAsync
 using Microsoft.Extensions.Logging;   // Para ILogger
 
 namespace SIGHR.Controllers
 {
-    // Protege todo o controller, permitindo acesso apenas a usuários autenticados
-    // com o CollaboratorLoginScheme. Adicione roles se necessário (ex: "Collaborator", "Office").
-    [Authorize(AuthenticationSchemes = "CollaboratorLoginScheme")]
+    // A autorização no nível do controller agora permite todos os roles que podem interagir com o ponto.
+    // As actions individuais podem ter autorizações mais específicas se necessário.
+    [Authorize(Roles = "Admin,Office,Collaborator", AuthenticationSchemes = "Identity.Application,AdminLoginScheme,CollaboratorLoginScheme")]
     public class RegistoPontoController : Controller
     {
         private readonly SIGHRContext _context;
+        private readonly UserManager<SIGHRUser> _userManager; // Injetado para obter dados do usuário se necessário
         private readonly ILogger<RegistoPontoController> _logger;
 
-        public RegistoPontoController(SIGHRContext context, ILogger<RegistoPontoController> logger)
+        public RegistoPontoController(SIGHRContext context, UserManager<SIGHRUser> userManager, ILogger<RegistoPontoController> logger)
         {
             _context = context;
+            _userManager = userManager;
             _logger = logger;
         }
 
@@ -31,6 +36,18 @@ namespace SIGHR.Controllers
         {
             return User.FindFirstValue(ClaimTypes.NameIdentifier);
         }
+
+        // --- ACTIONS PARA A INTERFACE DE BATER PONTO DO COLABORADOR ---
+        // Se você tiver uma view para os botões de bater ponto, ela pode ser servida por uma action Index aqui.
+        // Exemplo:
+        // GET: /RegistoPonto/ ou /RegistoPonto/Index
+        // [HttpGet]
+        // public IActionResult Index()
+        // {
+        //     ViewData["Title"] = "Registo de Ponto";
+        //     return View(); // Retornaria Views/RegistoPonto/Index.cshtml (onde estariam os botões)
+        // }
+
 
         // GET: /RegistoPonto/GetPontoDoDia (para AJAX)
         [HttpGet]
@@ -47,6 +64,7 @@ namespace SIGHR.Controllers
                 .Where(r => r.UtilizadorId == utilizadorId && r.Data.Date == hoje)
                 .Select(r => new
                 {
+                    // Retorna TimeSpan.ToString() que já é "hh:mm:ss" ou similar
                     HoraEntrada = r.HoraEntrada.ToString(@"hh\:mm\:ss"),
                     SaidaAlmoco = r.SaidaAlmoco.ToString(@"hh\:mm\:ss"),
                     EntradaAlmoco = r.EntradaAlmoco.ToString(@"hh\:mm\:ss"),
@@ -56,6 +74,7 @@ namespace SIGHR.Controllers
 
             if (registoDoDia == null)
             {
+                // Se não há registo, retorna TimeSpans zerados formatados
                 return Ok(new
                 {
                     HoraEntrada = TimeSpan.Zero.ToString(@"hh\:mm\:ss"),
@@ -70,14 +89,14 @@ namespace SIGHR.Controllers
 
         // POST: /RegistoPonto/RegistarEntrada
         [HttpPost]
-        [ValidateAntiForgeryToken] // Boa prática para POSTs que alteram dados
+        [ValidateAntiForgeryToken] // Importante para segurança
         public async Task<IActionResult> RegistarEntrada()
         {
             var utilizadorId = GetCurrentUserId();
             if (string.IsNullOrEmpty(utilizadorId))
             {
                 _logger.LogWarning("RegistarEntrada: Tentativa de acesso não autenticado.");
-                return Unauthorized("Utilizador não autenticado.");
+                return Unauthorized(new { success = false, message = "Utilizador não autenticado." });
             }
 
             var hoje = DateTime.Today;
@@ -86,18 +105,16 @@ namespace SIGHR.Controllers
 
             if (registoExistente != null)
             {
-                // Se já existe, mas a entrada não foi marcada (HoraEntrada é Zero), permite marcar.
-                // Isso pode acontecer se o registro foi criado por outra ação ou se houve um erro.
                 if (registoExistente.HoraEntrada == TimeSpan.Zero)
                 {
                     registoExistente.HoraEntrada = DateTime.Now.TimeOfDay;
                     _context.Horarios.Update(registoExistente);
                     await _context.SaveChangesAsync();
-                    _logger.LogInformation($"RegistarEntrada: Entrada atualizada para o utilizador {utilizadorId} às {registoExistente.HoraEntrada}.");
-                    return Ok("Entrada registrada com sucesso!");
+                    _logger.LogInformation("RegistarEntrada: Entrada atualizada para o utilizador {UserId} às {HoraEntrada}.", utilizadorId, registoExistente.HoraEntrada);
+                    return Ok(new { success = true, message = "Entrada registrada com sucesso!", hora = registoExistente.HoraEntrada.ToString(@"hh\:mm\:ss") });
                 }
-                _logger.LogWarning($"RegistarEntrada: Utilizador {utilizadorId} já registrou a entrada hoje.");
-                return BadRequest("Você já registrou a entrada para hoje.");
+                _logger.LogWarning("RegistarEntrada: Utilizador {UserId} já registrou a entrada hoje.", utilizadorId);
+                return BadRequest(new { success = false, message = "Você já registrou a entrada para hoje." });
             }
 
             var novoRegisto = new Horario
@@ -105,15 +122,15 @@ namespace SIGHR.Controllers
                 UtilizadorId = utilizadorId,
                 Data = hoje,
                 HoraEntrada = DateTime.Now.TimeOfDay,
-                HoraSaida = TimeSpan.Zero,
+                HoraSaida = TimeSpan.Zero, // Padrão para TimeSpan
                 EntradaAlmoco = TimeSpan.Zero,
                 SaidaAlmoco = TimeSpan.Zero
             };
 
             _context.Horarios.Add(novoRegisto);
             await _context.SaveChangesAsync();
-            _logger.LogInformation($"RegistarEntrada: Nova entrada registrada para o utilizador {utilizadorId} às {novoRegisto.HoraEntrada}.");
-            return Ok("Entrada registrada com sucesso!");
+            _logger.LogInformation("RegistarEntrada: Nova entrada registrada para o utilizador {UserId} às {HoraEntrada}.", utilizadorId, novoRegisto.HoraEntrada);
+            return Ok(new { success = true, message = "Entrada registrada com sucesso!", hora = novoRegisto.HoraEntrada.ToString(@"hh\:mm\:ss") });
         }
 
         // POST: /RegistoPonto/RegistarSaidaAlmoco
@@ -122,37 +139,19 @@ namespace SIGHR.Controllers
         public async Task<IActionResult> RegistarSaidaAlmoco()
         {
             var utilizadorId = GetCurrentUserId();
-            if (string.IsNullOrEmpty(utilizadorId))
-            {
-                _logger.LogWarning("RegistarSaidaAlmoco: Tentativa de acesso não autenticado.");
-                return Unauthorized("Utilizador não autenticado.");
-            }
+            if (string.IsNullOrEmpty(utilizadorId)) return Unauthorized(new { success = false, message = "Utilizador não autenticado." });
 
             var hoje = DateTime.Today;
-            var registo = await _context.Horarios
-                .FirstOrDefaultAsync(r => r.UtilizadorId == utilizadorId && r.Data.Date == hoje);
+            var registo = await _context.Horarios.FirstOrDefaultAsync(r => r.UtilizadorId == utilizadorId && r.Data.Date == hoje);
 
-            if (registo == null || registo.HoraEntrada == TimeSpan.Zero)
-            {
-                _logger.LogWarning($"RegistarSaidaAlmoco: Utilizador {utilizadorId} tentou sair para almoço sem registro de entrada.");
-                return BadRequest("Você precisa registrar a entrada do dia primeiro.");
-            }
-            if (registo.SaidaAlmoco != TimeSpan.Zero)
-            {
-                _logger.LogWarning($"RegistarSaidaAlmoco: Utilizador {utilizadorId} já registrou saída para almoço.");
-                return BadRequest("Você já registrou a saída para o almoço hoje.");
-            }
-            if (registo.HoraSaida != TimeSpan.Zero)
-            {
-                _logger.LogWarning($"RegistarSaidaAlmoco: Utilizador {utilizadorId} tentou sair para almoço após registrar saída do dia.");
-                return BadRequest("Você já registrou a saída do dia. Não é possível registrar saída para almoço.");
-            }
+            if (registo == null || registo.HoraEntrada == TimeSpan.Zero) return BadRequest(new { success = false, message = "Registe a entrada do dia primeiro." });
+            if (registo.SaidaAlmoco != TimeSpan.Zero) return BadRequest(new { success = false, message = "Já registrou a saída para almoço hoje." });
+            if (registo.HoraSaida != TimeSpan.Zero) return BadRequest(new { success = false, message = "Já registrou a saída do dia." });
 
             registo.SaidaAlmoco = DateTime.Now.TimeOfDay;
-            _context.Horarios.Update(registo);
             await _context.SaveChangesAsync();
-            _logger.LogInformation($"RegistarSaidaAlmoco: Saída para almoço registrada para {utilizadorId} às {registo.SaidaAlmoco}.");
-            return Ok("Saída para o almoço registrada com sucesso!");
+            _logger.LogInformation("RegistarSaidaAlmoco: Saída para almoço para {UserId} às {SaidaAlmoco}.", utilizadorId, registo.SaidaAlmoco);
+            return Ok(new { success = true, message = "Saída para almoço registrada!", hora = registo.SaidaAlmoco.ToString(@"hh\:mm\:ss") });
         }
 
         // POST: /RegistoPonto/RegistarEntradaAlmoco
@@ -161,44 +160,21 @@ namespace SIGHR.Controllers
         public async Task<IActionResult> RegistarEntradaAlmoco()
         {
             var utilizadorId = GetCurrentUserId();
-            if (string.IsNullOrEmpty(utilizadorId))
-            {
-                _logger.LogWarning("RegistarEntradaAlmoco: Tentativa de acesso não autenticado.");
-                return Unauthorized("Utilizador não autenticado.");
-            }
+            if (string.IsNullOrEmpty(utilizadorId)) return Unauthorized(new { success = false, message = "Utilizador não autenticado." });
 
             var hoje = DateTime.Today;
-            var registo = await _context.Horarios
-                .FirstOrDefaultAsync(r => r.UtilizadorId == utilizadorId && r.Data.Date == hoje);
+            var registo = await _context.Horarios.FirstOrDefaultAsync(r => r.UtilizadorId == utilizadorId && r.Data.Date == hoje);
 
-            if (registo == null || registo.HoraEntrada == TimeSpan.Zero)
-            {
-                _logger.LogWarning($"RegistarEntradaAlmoco: Utilizador {utilizadorId} tentou voltar do almoço sem registro de entrada.");
-                return BadRequest("Registro de ponto diário não encontrado ou entrada não registrada.");
-            }
-            if (registo.SaidaAlmoco == TimeSpan.Zero)
-            {
-                _logger.LogWarning($"RegistarEntradaAlmoco: Utilizador {utilizadorId} tentou voltar do almoço sem ter saído para almoço.");
-                return BadRequest("Você não registrou a saída para o almoço ainda.");
-            }
-            if (registo.EntradaAlmoco != TimeSpan.Zero)
-            {
-                _logger.LogWarning($"RegistarEntradaAlmoco: Utilizador {utilizadorId} já registrou entrada do almoço.");
-                return BadRequest("Você já registrou a entrada de volta do almoço hoje.");
-            }
-            if (registo.HoraSaida != TimeSpan.Zero)
-            {
-                _logger.LogWarning($"RegistarEntradaAlmoco: Utilizador {utilizadorId} tentou voltar do almoço após registrar saída do dia.");
-                return BadRequest("Você já registrou a saída do dia. Não é possível registrar entrada de almoço.");
-            }
+            if (registo == null || registo.HoraEntrada == TimeSpan.Zero) return BadRequest(new { success = false, message = "Registo de entrada não encontrado." });
+            if (registo.SaidaAlmoco == TimeSpan.Zero) return BadRequest(new { success = false, message = "Registe a saída para almoço primeiro." });
+            if (registo.EntradaAlmoco != TimeSpan.Zero) return BadRequest(new { success = false, message = "Já registou a entrada do almoço." });
+            if (registo.HoraSaida != TimeSpan.Zero) return BadRequest(new { success = false, message = "Já registou a saída do dia." });
 
             registo.EntradaAlmoco = DateTime.Now.TimeOfDay;
-            _context.Horarios.Update(registo);
             await _context.SaveChangesAsync();
-            _logger.LogInformation($"RegistarEntradaAlmoco: Entrada do almoço registrada para {utilizadorId} às {registo.EntradaAlmoco}.");
-            return Ok("Entrada após o almoço registrada com sucesso!");
+            _logger.LogInformation("RegistarEntradaAlmoco: Entrada do almoço para {UserId} às {EntradaAlmoco}.", utilizadorId, registo.EntradaAlmoco);
+            return Ok(new { success = true, message = "Entrada do almoço registrada!", hora = registo.EntradaAlmoco.ToString(@"hh\:mm\:ss") });
         }
-
 
         // POST: /RegistoPonto/RegistarSaida
         [HttpPost]
@@ -206,37 +182,82 @@ namespace SIGHR.Controllers
         public async Task<IActionResult> RegistarSaida()
         {
             var utilizadorId = GetCurrentUserId();
-            if (string.IsNullOrEmpty(utilizadorId))
+            if (string.IsNullOrEmpty(utilizadorId)) return Unauthorized(new { success = false, message = "Utilizador não autenticado." });
+
+            var hoje = DateTime.Today;
+            var registo = await _context.Horarios.FirstOrDefaultAsync(r => r.UtilizadorId == utilizadorId && r.Data.Date == hoje && r.HoraEntrada != TimeSpan.Zero && r.HoraSaida == TimeSpan.Zero);
+
+            if (registo == null) return BadRequest(new { success = false, message = "Registo de entrada não encontrado ou saída já efetuada." });
+            if (registo.SaidaAlmoco != TimeSpan.Zero && registo.EntradaAlmoco == TimeSpan.Zero) return BadRequest(new { success = false, message = "Registe a entrada do almoço primeiro." });
+
+            registo.HoraSaida = DateTime.Now.TimeOfDay;
+            await _context.SaveChangesAsync();
+            _logger.LogInformation("RegistarSaida: Saída do dia para {UserId} às {HoraSaida}.", utilizadorId, registo.HoraSaida);
+            return Ok(new { success = true, message = "Saída registrada com sucesso!", hora = registo.HoraSaida.ToString(@"hh\:mm\:ss") });
+        }
+
+
+        // --- ACTION PARA A VIEW "MEU REGISTO DE PONTO" (COLABORADOR) ---
+        [HttpGet]
+        // A autorização geral do controller já cobre isso.
+        // Se quisesse ser mais específico, poderia adicionar [Authorize(Roles="Collaborator")] aqui,
+        // mas o filtro por userId já garante que ele só veja os seus.
+        public async Task<IActionResult> MeuRegisto(DateTime? filtroData)
+        {
+            ViewData["Title"] = "Meu Registo de Ponto";
+            var userId = GetCurrentUserId();
+
+            if (string.IsNullOrEmpty(userId))
             {
-                _logger.LogWarning("RegistarSaida: Tentativa de acesso não autenticado.");
+                _logger.LogWarning("Acesso a MeuRegisto sem UserID.");
                 return Unauthorized("Utilizador não autenticado.");
             }
 
-            var hoje = DateTime.Today;
-            var registo = await _context.Horarios
-                .FirstOrDefaultAsync(r => r.UtilizadorId == utilizadorId &&
-                                       r.Data.Date == hoje &&
-                                       r.HoraEntrada != TimeSpan.Zero && // Deve ter entrado
-                                       r.HoraSaida == TimeSpan.Zero);   // Saída ainda não registrada
+            IQueryable<Horario> query = _context.Horarios
+                                            .Where(h => h.UtilizadorId == userId);
 
-            if (registo == null)
+            if (filtroData.HasValue)
             {
-                _logger.LogWarning($"RegistarSaida: Utilizador {utilizadorId} não encontrou registro de entrada aberto.");
-                return BadRequest("Não foi encontrado um registo de entrada aberto para hoje ou a saída já foi registrada.");
+                query = query.Where(h => h.Data.Date == filtroData.Value.Date);
             }
 
-            // Se saiu para almoço, deve ter voltado
-            if (registo.SaidaAlmoco != TimeSpan.Zero && registo.EntradaAlmoco == TimeSpan.Zero)
-            {
-                _logger.LogWarning($"RegistarSaida: Utilizador {utilizadorId} tentou sair do dia sem ter voltado do almoço.");
-                return BadRequest("Você precisa registrar a entrada do almoço antes de registrar a saída do dia.");
-            }
+            var horariosDoUsuario = await query
+                                        .OrderByDescending(h => h.Data)
+                                        .ThenBy(h => h.HoraEntrada)
+                                        .ToListAsync();
 
-            registo.HoraSaida = DateTime.Now.TimeOfDay;
-            _context.Horarios.Update(registo);
-            await _context.SaveChangesAsync();
-            _logger.LogInformation($"RegistarSaida: Saída do dia registrada para {utilizadorId} às {registo.HoraSaida}.");
-            return Ok("Saída registrada com sucesso!");
+            var viewModels = horariosDoUsuario.Select(h =>
+            {
+                TimeSpan totalTrabalhado = TimeSpan.Zero;
+                TimeSpan tempoAlmoco = TimeSpan.Zero;
+
+                if (h.EntradaAlmoco != TimeSpan.Zero && h.SaidaAlmoco != TimeSpan.Zero && h.EntradaAlmoco > h.SaidaAlmoco)
+                {
+                    tempoAlmoco = h.EntradaAlmoco - h.SaidaAlmoco;
+                }
+
+                if (h.HoraSaida != TimeSpan.Zero && h.HoraEntrada != TimeSpan.Zero && h.HoraSaida > h.HoraEntrada)
+                {
+                    totalTrabalhado = (h.HoraSaida - h.HoraEntrada) - tempoAlmoco;
+                    if (totalTrabalhado < TimeSpan.Zero) totalTrabalhado = TimeSpan.Zero;
+                }
+
+                return new HorarioColaboradorViewModel // Ou HorarioAdminViewModel se for o mesmo
+                {
+                    HorarioId = h.Id,
+                    Data = h.Data,
+                    HoraEntrada = h.HoraEntrada,
+                    SaidaAlmoco = h.SaidaAlmoco,
+                    EntradaAlmoco = h.EntradaAlmoco,
+                    HoraSaida = h.HoraSaida,
+                    TotalHorasTrabalhadas = totalTrabalhado > TimeSpan.Zero ? $"{(int)totalTrabalhado.TotalHours:D2}:{totalTrabalhado.Minutes:D2}" : "--:--",
+                    // Localizacao = h.Localizacao; // Se tiver este campo
+                };
+            }).ToList();
+
+            ViewData["FiltroDataAtual"] = filtroData?.ToString("yyyy-MM-dd");
+
+            return View(viewModels); // Retorna Views/RegistoPonto/MeuRegisto.cshtml
         }
     }
 }

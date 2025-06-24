@@ -1,0 +1,165 @@
+﻿@model IEnumerable<SIGHR.Models.ViewModels.HorarioColaboradorViewModel>
+@{
+    ViewData["Title"] = "Meu Registo de Ponto";
+    Layout = "_LayoutCollaborator"; // Usa o layout do colaborador
+}
+
+@section Styles {
+    <style>
+        /* Estilos para esta página - idealmente, mova para um CSS compartilhado se forem comuns */
+        .content .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            padding-bottom: 10px;
+            border-bottom: 1px solid #eee;
+        }
+
+            .content .header h1 { /* Ajuste de H1 para esta view */
+                margin: 0;
+                font-size: 1.8em;
+                color: #333; /* Cor padrão para o título */
+            }
+
+        /* Se você tiver botões de ação no header desta página (ex: "Exportar") */
+        .action-buttons-meuregisto .btn {
+            padding: 8px 15px;
+            font-size: 0.9rem;
+            /* Adicione mais estilos de botão se necessário */
+        }
+
+        .search-bar {
+            margin-bottom: 20px;
+            margin-top: 15px;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            align-items: center;
+        }
+
+            .search-bar input[type="date"].form-control-sm, /* Mais específico */
+            .search-bar .form-control-sm { /* Fallback para outros inputs sm */
+                padding: .375rem .75rem;
+                font-size: 1rem; /* Aumentado para melhor leitura */
+                border: 1px solid #ced4da;
+                border-radius: .25rem;
+                height: calc(1.5em + .75rem + 2px); /* Altura padrão do Bootstrap para form-control */
+            }
+
+            .search-bar .filter-btn {
+                padding: .375rem .75rem; /* Mesmo padding dos inputs */
+                font-size: 1rem;
+                border-radius: .25rem;
+                color: #fff;
+                border: 1px solid transparent;
+                cursor: pointer;
+                line-height: 1.5; /* Para alinhar com os inputs */
+            }
+
+        .filter-btn.apply {
+            background-color: #0d6efd;
+            border-color: #0d6efd;
+        }
+
+        .filter-btn.clear {
+            background-color: #6c757d;
+            border-color: #6c757d;
+            text-decoration: none;
+        }
+
+
+        .table-container {
+            margin-top: 10px;
+        }
+
+        .table thead th {
+            color: black; /* Letras pretas no cabeçalho */
+            vertical-align: middle;
+            background-color: #f8f9fa; /* Fundo leve para cabeçalho */
+        }
+
+        .table tbody td {
+            vertical-align: middle;
+        }
+
+        .no-records {
+            text-align: center;
+            padding: 20px;
+            font-style: italic;
+            background-color: #f8f9fa;
+            border: 1px solid #eee;
+            border-radius: 5px;
+            margin-top: 20px;
+        }
+        /* Para botões de paginação, se você adicionar */
+        .pagination {
+            justify-content: center;
+            margin-top: 20px;
+        }
+    </style>
+}
+
+<div class="content">
+    <div class="header">
+        <h1>@ViewData["Title"]</h1>
+        @* <div class="action-buttons-meuregisto"> *@
+        @* <button onclick="exportarMeuRegistoExcel()" class="btn btn-info">Exportar Excel</button> *@
+        @* </div> *@
+    </div>
+
+    <form method="get" asp-action="MeuRegisto" asp-controller="RegistoPonto" class="search-bar">
+        <input type="date" name="filtroData" value="@ViewData["FiltroDataAtual"]" class="form-control-sm" />
+        <button type="submit" class="filter-btn apply">Filtrar por Data</button>
+        <a asp-action="MeuRegisto" asp-controller="RegistoPonto" class="filter-btn clear">Limpar Filtro</a>
+    </form>
+
+    @if (Model == null || !Model.Any())
+    {
+        <p class="no-records">Você não tem registos de ponto para o filtro aplicado (ou nenhum registo ainda).</p>
+    }
+    else
+    {
+        <div class="table-responsive table-container">
+            <table id="tabela-meus-horarios" class="table table-striped table-hover table-bordered">
+                <thead>
+                    <tr>
+                        <th>Data</th>
+                        <th>Entrada</th>
+                        <th>Saída Almoço</th>
+                        <th>Entrada Almoço</th>
+                        <th>Saída</th>
+                        <th>Total de Horas</th>
+                        @* <th>Localização</th> *@
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var item in Model)
+                    {
+                        <tr>
+                            <td>@item.Data.ToString("dd/MM/yyyy")</td>
+                            <td>@(item.HoraEntrada == TimeSpan.Zero ? "--:--" : item.HoraEntrada.ToString(@"hh\:mm"))</td>
+                            <td>@(item.SaidaAlmoco == TimeSpan.Zero ? "--:--" : item.SaidaAlmoco.ToString(@"hh\:mm"))</td>
+                            <td>@(item.EntradaAlmoco == TimeSpan.Zero ? "--:--" : item.EntradaAlmoco.ToString(@"hh\:mm"))</td>
+                            <td>@(item.HoraSaida == TimeSpan.Zero ? "--:--" : item.HoraSaida.ToString(@"hh\:mm"))</td>
+                            <td>@Html.DisplayFor(modelItem => item.TotalHorasTrabalhadas)</td>
+                            @* <td>@Html.DisplayFor(modelItem => item.Localizacao)</td> *@
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    }
+</div>
+
+@* Se precisar de scripts específicos para esta página, como exportar para Excel *@
+@*
+@section Scripts {
+    <script>
+        function exportarMeuRegistoExcel() {
+            // Lógica para exportar a tabela 'tabela-meus-horarios'
+            alert("Exportar para Excel (Meu Registo) a ser implementado.");
+        }
+    </script>
+}
+*@

@@ -20,18 +20,16 @@
                 <li class="@(IsRouteActive(ViewContext, "Collaborator", "Dashboard") ? "active" : "")">
                     <a asp-controller="Collaborator" asp-action="Dashboard">Meu Painel</a>
                 </li>
-                <li class="@(IsPageActive(ViewContext, "/RegistoPonto") ? "active" : "")">
-                    <a asp-page="/RegistoPonto">Registo de Ponto</a>
+                <li class="@(IsRouteActive(ViewContext, "RegistoPonto", "MeuRegisto") ? "active" : "")">
+                    <a asp-controller="RegistoPonto" asp-action="MeuRegisto">Registo de Ponto</a>
                 </li>
                 <li>
                     <a asp-controller="Faltas" asp-action="MinhasFaltas">Minhas Faltas</a>
                 </li>
-                <li class="@(IsControllerActive(ViewContext, "MinhasEncomendas") ? "active" : "")">
-                    <a asp-controller="MinhasEncomendas" asp-action="Index">Minhas Encomendas</a>
+                <li class="@(IsRouteActive(ViewContext, "Encomendas", "Registar") ? "active" : "")">
+                    <a asp-controller="Encomendas" asp-action="MinhasEncomendas">Minhas Encomenda</a>
                 </li>
-                <li>
-                    <a asp-controller="MaterialRequest" asp-action="Create">Pedir Material</a>
-                </li>
+
 
             </ul>
         </nav>

@@ -3,6 +3,7 @@ using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using SIGHR.Areas.Identity.Data;
 
@@ -11,9 +12,11 @@ using SIGHR.Areas.Identity.Data;
 namespace SIGHR.Migrations
 {
     [DbContext(typeof(SIGHRContext))]
-    partial class SIGHRContextModelSnapshot : ModelSnapshot
+    [Migration("20250623195429_UpdateEncomendaWithEstadoString")]
+    partial class UpdateEncomendaWithEstadoString
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -243,10 +246,6 @@ namespace SIGHR.Migrations
 
                     b.Property<DateTime>("Data")
                         .HasColumnType("datetime2");
-
-                    b.Property<string>("DescricaoObra")
-                        .HasMaxLength(200)
-                        .HasColumnType("nvarchar(200)");
 
                     b.Property<string>("Estado")
                         .IsRequired()

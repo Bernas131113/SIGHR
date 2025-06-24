@@ -12,7 +12,7 @@ using Microsoft.Extensions.Logging; // Para ILogger
 
 namespace SIGHR.Controllers
 {
-    [Authorize(Roles = "Admin,Collaborator,Office", AuthenticationSchemes = "AdminLoginScheme,CollaboratorLoginScheme")]
+    [Authorize(Roles = "Admin,Collaborator,Office", AuthenticationSchemes = "AdminLoginScheme,CollaboratorLoginScheme,Identity.Application")]
     public class CollaboratorController : Controller
     {
         private readonly SIGHRContext _context;
