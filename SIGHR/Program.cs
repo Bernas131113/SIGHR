@@ -83,27 +83,34 @@ builder.Services.AddAuthorization(options => {
 builder.Services.AddControllersWithViews().AddJsonOptions(options => options.JsonSerializerOptions.ReferenceHandler = ReferenceHandler.IgnoreCycles);
 builder.Services.AddRazorPages();
 builder.Services.AddScoped<TokenService>();
+// Program.cs
 builder.Services.AddEndpointsApiExplorer();
-builder.Services.AddSwaggerGen(c => {
-    c.SwaggerDoc("v1", new OpenApiInfo { Title = "SIGHR API", Version = "v1" });
-    c.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme { Name = "Authorization", In = ParameterLocation.Header, Type = SecuritySchemeType.ApiKey, Scheme = "Bearer", Description = "JWT Authorization header. Ex: \"Bearer {token}\"" });
-    c.AddSecurityRequirement(new OpenApiSecurityRequirement() { { new OpenApiSecurityScheme { Reference = new OpenApiReference { Type = ReferenceType.SecurityScheme, Id = "Bearer" } }, new List<string>() } });
+
+
+builder.Services.AddSwaggerGen(c =>
+{
+    c.SwaggerDoc("v1", new OpenApiInfo
+    {
+        Title = "API de SIGHR",
+        Version = "v1",
+        Description = "API para SIGHR"
+    });
+
     var xmlFile = $"{Assembly.GetExecutingAssembly().GetName().Name}.xml";
     var xmlPath = Path.Combine(AppContext.BaseDirectory, xmlFile);
-    if (File.Exists(xmlPath)) c.IncludeXmlComments(xmlPath);
+    c.IncludeXmlComments(xmlPath);
 });
 
-
-// ----- Fim da configuração de Serviços -----
 var app = builder.Build();
 
-// ----- Pipeline HTTP -----
+
+
 if (app.Environment.IsDevelopment())
 {
-    app.UseDeveloperExceptionPage();
     app.UseSwagger();
-    app.UseSwaggerUI(c => c.SwaggerEndpoint("/swagger/v1/swagger.json", "SIGHR API V1"));
+    app.UseSwaggerUI();
 }
+
 else { app.UseExceptionHandler("/Home/Error"); app.UseHsts(); }
 
 app.UseHttpsRedirection();

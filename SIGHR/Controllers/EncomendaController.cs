@@ -185,7 +185,7 @@ namespace SIGHR.Controllers
         }
 
         // --- API ENDPOINTS ---
-        [HttpGet("api/Encomendas/Listar")]
+        [HttpGet]
         [Authorize(Policy = "AdminGeneralApiAccess")]
         public async Task<IActionResult> ListarEncomendasApi(string? filtroClienteObra, DateTime? filtroData, string? filtroEstado)
         {
@@ -214,7 +214,7 @@ namespace SIGHR.Controllers
             catch (Exception ex) { _logger.LogError(ex, "Erro API ListarEncomendas"); return StatusCode(500, "Erro interno"); }
         }
 
-        [HttpPost("api/Encomendas/Excluir")]
+        [HttpPost]
         [Authorize(Policy = "AdminGeneralApiAccess")]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> ExcluirEncomendasApi([FromBody] List<long> idsParaExcluir)
@@ -233,7 +233,7 @@ namespace SIGHR.Controllers
             catch (Exception ex) { _logger.LogError(ex, "Erro API Excluir"); return StatusCode(500, "Erro ao excluir."); }
         }
 
-        [HttpPost("api/Encomendas/MudarEstado")]
+        [HttpPost]
         [Authorize(Policy = "AdminGeneralApiAccess")]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> MudarEstadoEncomendaApi([FromBody] MudarEstadoEncomendaRequest request)
