@@ -59,7 +59,7 @@ namespace SIGHR.Areas.Identity.Pages.Account
                 // Permite que Admin, Office, ou Collaborator usem esta página de login por PIN
                 var userToVerify = await _context.Users
                     .FirstOrDefaultAsync(u => u.UserName == Input.UserName &&
-                                              (u.Tipo == "Collaborator" || u.Tipo == "Office" || u.Tipo == "Admin"));
+                                              (u.Tipo == "Collaborator" || u.Tipo == "Admin"));
 
                 if (userToVerify != null && !string.IsNullOrEmpty(userToVerify.PinnedHash))
                 {

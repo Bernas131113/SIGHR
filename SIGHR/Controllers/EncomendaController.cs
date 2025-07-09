@@ -47,7 +47,7 @@ namespace SIGHR.Controllers
 
         // --- VIEW DE GESTÃO DE TODAS AS ENCOMENDAS (ADMIN/OFFICE) ---
         [HttpGet]
-        [Authorize(Roles = "Admin,Office", AuthenticationSchemes = "Identity.Application,AdminLoginScheme")]
+        [Authorize(Policy = "AdminAccessUI")]
         public IActionResult Index()
         {
             ViewData["Title"] = "Gestão de Encomendas";
@@ -56,7 +56,7 @@ namespace SIGHR.Controllers
 
         // --- VIEW "MINHAS ENCOMENDAS" (COLABORADOR) ---
         [HttpGet]
-        [Authorize(Roles = "Admin,Office,Collaborator", AuthenticationSchemes = "Identity.Application,AdminLoginScheme,CollaboratorLoginScheme")]
+        [Authorize(Policy = "CollaboratorAccessUI")]
         public async Task<IActionResult> MinhasEncomendas(DateTime? filtroData, string? filtroEstado)
         {
             ViewData["Title"] = "Minhas Encomendas";
@@ -96,7 +96,7 @@ namespace SIGHR.Controllers
 
         // --- VIEW REGISTAR ENCOMENDA ---
         [HttpGet]
-        [Authorize(Roles = "Admin,Office,Collaborator", AuthenticationSchemes = "Identity.Application,AdminLoginScheme,CollaboratorLoginScheme")]
+        [Authorize(Policy = "CollaboratorAccessUI")]
         public async Task<IActionResult> Registar()
         {
             ViewData["Title"] = "Registar Nova Encomenda";
@@ -112,7 +112,7 @@ namespace SIGHR.Controllers
 
         [HttpPost]
         [ValidateAntiForgeryToken]
-        [Authorize(Roles = "Admin,Office,Collaborator", AuthenticationSchemes = "Identity.Application,AdminLoginScheme,CollaboratorLoginScheme")]
+        [Authorize(Policy = "CollaboratorAccessUI")]
         public async Task<IActionResult> Registar(RegistarEncomendaViewModel model)
         {
             var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
@@ -186,7 +186,7 @@ namespace SIGHR.Controllers
 
         // --- API ENDPOINTS ---
         [HttpGet("api/Encomendas/Listar")]
-        [Authorize(Roles = "Admin,Office", AuthenticationSchemes = "Identity.Application,AdminLoginScheme")]
+        [Authorize(Policy = "AdminGeneralApiAccess")]
         public async Task<IActionResult> ListarEncomendasApi(string? filtroClienteObra, DateTime? filtroData, string? filtroEstado)
         {
             _logger.LogInformation("API ListarEncomendasApi. Cliente/Obra: {FCO}, Data: {FD}, Estado: {FE}", filtroClienteObra, filtroData, filtroEstado);
@@ -215,7 +215,7 @@ namespace SIGHR.Controllers
         }
 
         [HttpPost("api/Encomendas/Excluir")]
-        [Authorize(Roles = "Admin", AuthenticationSchemes = "Identity.Application,AdminLoginScheme")]
+        [Authorize(Policy = "AdminGeneralApiAccess")]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> ExcluirEncomendasApi([FromBody] List<long> idsParaExcluir)
         {
@@ -234,7 +234,7 @@ namespace SIGHR.Controllers
         }
 
         [HttpPost("api/Encomendas/MudarEstado")]
-        [Authorize(Roles = "Admin,Office", AuthenticationSchemes = "Identity.Application,AdminLoginScheme")]
+        [Authorize(Policy = "AdminGeneralApiAccess")]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> MudarEstadoEncomendaApi([FromBody] MudarEstadoEncomendaRequest request)
         {

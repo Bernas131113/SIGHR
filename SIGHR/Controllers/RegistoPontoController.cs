@@ -17,7 +17,7 @@ namespace SIGHR.Controllers
 {
     // A autorização no nível do controller agora permite todos os roles que podem interagir com o ponto.
     // As actions individuais podem ter autorizações mais específicas se necessário.
-    [Authorize(Roles = "Admin,Office,Collaborator", AuthenticationSchemes = "Identity.Application,AdminLoginScheme,CollaboratorLoginScheme")]
+    [Authorize(Policy = "CollaboratorAccessUI")]
     public class RegistoPontoController : Controller
     {
         private readonly SIGHRContext _context;

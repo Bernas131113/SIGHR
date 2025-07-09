@@ -17,7 +17,7 @@ namespace SIGHR.Controllers
 {
     // A autorização no nível do controller pode ser mais genérica se as actions tiverem a sua própria.
     // Ou, se a maioria das actions for para colaboradores/office/admin, pode ser:
-    [Authorize(Roles = "Admin,Office,Collaborator", AuthenticationSchemes = "Identity.Application,AdminLoginScheme,CollaboratorLoginScheme")]
+    [Authorize]
     public class FaltasController : Controller
     {
         private readonly SIGHRContext _context;
@@ -35,6 +35,7 @@ namespace SIGHR.Controllers
 
         // GET: /Faltas/Registar (Qualquer usuário logado e autorizado nos roles acima pode registrar UMA FALTA PARA SI MESMO)
         [HttpGet]
+        [Authorize(Policy = "CollaboratorAccessUI")]
         public IActionResult Registar()
         {
             var model = new FaltaViewModel
@@ -47,6 +48,7 @@ namespace SIGHR.Controllers
 
         [HttpPost]
         [ValidateAntiForgeryToken]
+        [Authorize(Policy = "CollaboratorAccessUI")]
         public async Task<IActionResult> Registar(FaltaViewModel model)
         {
             var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
@@ -88,6 +90,7 @@ namespace SIGHR.Controllers
 
         // GET: /Faltas/MinhasFaltas (Qualquer usuário logado e autorizado pode ver AS SUAS PRÓPRIAS FALTAS)
         [HttpGet]
+        [Authorize(Policy = "CollaboratorAccessUI")]
         public async Task<IActionResult> MinhasFaltas()
         {
             var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
@@ -119,7 +122,7 @@ namespace SIGHR.Controllers
 
         // GET: /Faltas/GestaoAdmin (Nome da action para a view de gestão de todas as faltas)
         [HttpGet]
-        [Authorize(Roles = "Admin,Office", AuthenticationSchemes = "Identity.Application,AdminLoginScheme")] // Apenas Admin e Office
+        [Authorize(Policy = "AdminAccessUI")]
         public IActionResult GestaoAdmin()
         {
             ViewData["Title"] = "Gestão de Todas as Faltas";
@@ -128,7 +131,7 @@ namespace SIGHR.Controllers
 
         // GET API: /Faltas/ListarTodasApi (API para popular a tabela de gestão do admin)
         [HttpGet]
-        [Authorize(Roles = "Admin,Office", AuthenticationSchemes = "Identity.Application,AdminLoginScheme")]
+        [Authorize(Policy = "AdminGeneralApiAccess")]
         public async Task<IActionResult> ListarTodasApi(string? filtroNome, DateTime? filtroData)
         {
             try
@@ -174,7 +177,7 @@ namespace SIGHR.Controllers
         // POST API: /Faltas/ExcluirApi (API para excluir faltas selecionadas pelo admin)
         [HttpPost]
         [ValidateAntiForgeryToken]
-        [Authorize(Roles = "Admin", AuthenticationSchemes = "Identity.Application,AdminLoginScheme")] // SOMENTE Admin pode excluir
+        [Authorize(Policy = "AdminGeneralApiAccess")]
         public async Task<IActionResult> ExcluirApi([FromBody] List<long> idsParaExcluir)
         {
             if (idsParaExcluir == null || !idsParaExcluir.Any())

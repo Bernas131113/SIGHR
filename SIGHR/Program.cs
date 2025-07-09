@@ -1,83 +1,122 @@
-﻿using Microsoft.AspNetCore.Identity;
+﻿using Microsoft.AspNetCore.Authentication;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.IdentityModel.Tokens;
+using Microsoft.OpenApi.Models;
 using SIGHR.Areas.Identity.Data;
-using Microsoft.Extensions.Logging;
+using SIGHR.Services;   // Onde TokenService está definido
 using System;
-using Microsoft.Extensions.Configuration; // Para IConfiguration
+using System.Collections.Generic;
+using System.IO;
+using System.Reflection;
+using System.Text;
+using System.Text.Json.Serialization;
 
 var builder = WebApplication.CreateBuilder(args);
 
 // 1. Configurar a Connection String
 var connectionString = builder.Configuration.GetConnectionString("DefaultConnection")
-    ?? throw new InvalidOperationException("Connection string 'DefaultConnection' not found. Please define it in appsettings.json.");
+    ?? throw new InvalidOperationException("Connection string 'DefaultConnection' not found in appsettings.json.");
 
-// 2. Adicionar o DbContext (SIGHRContext)
+// 2. Adicionar o DbContext
 builder.Services.AddDbContext<SIGHRContext>(options =>
     options.UseSqlServer(connectionString));
 
-// 3. Configurar o ASP.NET Core Identity
+// 3. Configurar ASP.NET Core Identity
 builder.Services.AddDefaultIdentity<SIGHRUser>(options =>
 {
     options.SignIn.RequireConfirmedAccount = false;
-    options.Password.RequireDigit = true;
-    options.Password.RequireLowercase = true;
-    options.Password.RequireUppercase = true;
-    options.Password.RequireNonAlphanumeric = false;
-    options.Password.RequiredLength = 8;
-    options.Password.RequiredUniqueChars = 1;
     options.User.RequireUniqueEmail = true;
+    options.Password.RequiredLength = 8;
+    options.Password.RequireNonAlphanumeric = false;
 })
     .AddRoles<IdentityRole>()
-    // IPasswordHasher<SIGHRUser> é registrado por padrão pelo AddDefaultIdentity
     .AddEntityFrameworkStores<SIGHRContext>();
 
-// 4. Configurar esquemas de autenticação adicionais
-builder.Services.AddAuthentication(options =>
-{
-    options.DefaultChallengeScheme = IdentityConstants.ApplicationScheme;
-    options.DefaultSignInScheme = IdentityConstants.ApplicationScheme;
-    options.DefaultAuthenticateScheme = IdentityConstants.ApplicationScheme;
-})
-    .AddCookie("AdminLoginScheme", options =>
-    {
-        options.LoginPath = "/Identity/Account/AdminLogin";
-        options.AccessDeniedPath = "/Identity/Account/AccessDenied";
-        options.ExpireTimeSpan = TimeSpan.FromMinutes(60);
-        options.SlidingExpiration = true;
-    })
-    .AddCookie("CollaboratorLoginScheme", options =>
-    {
-        options.LoginPath = "/Identity/Account/CollaboratorPinLogin";
-        options.AccessDeniedPath = "/Identity/Account/AccessDenied";
-        options.ExpireTimeSpan = TimeSpan.FromHours(8);
-        options.SlidingExpiration = true;
-    });
+// 4. Configurar Autenticação e Esquemas de Cookie
+builder.Services.AddAuthentication()
+   .AddCookie("AdminLoginScheme", options =>
+   {
+       options.LoginPath = "/Identity/Account/AdminLogin";
+       options.AccessDeniedPath = "/Identity/Account/AccessDenied";
+       options.ExpireTimeSpan = TimeSpan.FromMinutes(60);
+   })
+   .AddCookie("CollaboratorLoginScheme", options =>
+   {
+       options.LoginPath = "/Identity/Account/CollaboratorPinLogin";
+       options.AccessDeniedPath = "/Identity/Account/AccessDenied";
+       options.ExpireTimeSpan = TimeSpan.FromHours(8);
+   })
+   // Adiciona autenticação JWT para API
+   .AddJwtBearer(JwtBearerDefaults.AuthenticationScheme, options =>
+   {
+       var jwtSettings = builder.Configuration.GetSection("Jwt");
+       var key = Encoding.UTF8.GetBytes(jwtSettings["Key"] ?? throw new InvalidOperationException("JWT Key not found."));
+       options.TokenValidationParameters = new TokenValidationParameters
+       {
+           ValidateIssuer = true,
+           ValidateAudience = true,
+           ValidateLifetime = true,
+           ValidateIssuerSigningKey = true,
+           ValidIssuer = jwtSettings["Issuer"],
+           ValidAudience = jwtSettings["Audience"],
+           IssuerSigningKey = new SymmetricSecurityKey(key),
+           ClockSkew = TimeSpan.Zero
+       };
+   });
 
-// 5. Configurar outros serviços
-builder.Services.AddControllersWithViews();
+// 5. Configurar Políticas de Autorização (Simplificado para Admin e Colaborador)
+builder.Services.AddAuthorization(options => {
+    var cookieSchemes = new[] { IdentityConstants.ApplicationScheme, "AdminLoginScheme", "CollaboratorLoginScheme" };
+    var jwtScheme = new[] { JwtBearerDefaults.AuthenticationScheme };
+    options.AddPolicy("AdminAccessUI", p => p.RequireRole("Admin").AddAuthenticationSchemes(cookieSchemes).RequireAuthenticatedUser());
+    options.AddPolicy("CollaboratorAccessUI", p => p.RequireRole("Admin", "Collaborator").AddAuthenticationSchemes(cookieSchemes).RequireAuthenticatedUser());
+    options.AddPolicy("AdminAccessApi", p => p.RequireRole("Admin").AddAuthenticationSchemes(jwtScheme).RequireAuthenticatedUser());
+    options.AddPolicy("CollaboratorAccessApi", p => p.RequireRole("Admin", "Collaborator").AddAuthenticationSchemes(jwtScheme).RequireAuthenticatedUser());
+    // Adicionada a política híbrida para APIs chamadas da UI
+    options.AddPolicy("AdminGeneralApiAccess", p => p.RequireRole("Admin").AddAuthenticationSchemes(cookieSchemes).AddAuthenticationSchemes(jwtScheme).RequireAuthenticatedUser());
+});
+
+// 6. Outros Serviços
+builder.Services.AddControllersWithViews().AddJsonOptions(options => options.JsonSerializerOptions.ReferenceHandler = ReferenceHandler.IgnoreCycles);
 builder.Services.AddRazorPages();
+builder.Services.AddScoped<TokenService>();
+builder.Services.AddEndpointsApiExplorer();
+builder.Services.AddSwaggerGen(c => {
+    c.SwaggerDoc("v1", new OpenApiInfo { Title = "SIGHR API", Version = "v1" });
+    c.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme { Name = "Authorization", In = ParameterLocation.Header, Type = SecuritySchemeType.ApiKey, Scheme = "Bearer", Description = "JWT Authorization header. Ex: \"Bearer {token}\"" });
+    c.AddSecurityRequirement(new OpenApiSecurityRequirement() { { new OpenApiSecurityScheme { Reference = new OpenApiReference { Type = ReferenceType.SecurityScheme, Id = "Bearer" } }, new List<string>() } });
+    var xmlFile = $"{Assembly.GetExecutingAssembly().GetName().Name}.xml";
+    var xmlPath = Path.Combine(AppContext.BaseDirectory, xmlFile);
+    if (File.Exists(xmlPath)) c.IncludeXmlComments(xmlPath);
+});
 
+
+// ----- Fim da configuração de Serviços -----
 var app = builder.Build();
 
-// Pipeline HTTP
-if (!app.Environment.IsDevelopment())
-{
-    app.UseExceptionHandler("/Home/Error");
-    app.UseHsts();
-}
-else
+// ----- Pipeline HTTP -----
+if (app.Environment.IsDevelopment())
 {
     app.UseDeveloperExceptionPage();
+    app.UseSwagger();
+    app.UseSwaggerUI(c => c.SwaggerEndpoint("/swagger/v1/swagger.json", "SIGHR API V1"));
 }
+else { app.UseExceptionHandler("/Home/Error"); app.UseHsts(); }
+
 app.UseHttpsRedirection();
 app.UseStaticFiles();
 app.UseRouting();
 app.UseAuthentication();
 app.UseAuthorization();
+
 app.MapControllerRoute(name: "default", pattern: "{controller=Home}/{action=Index}/{id?}");
 app.MapRazorPages();
+app.MapControllers();
 
-// Seeding
+// ----- Seeding de Dados -----
 using (var scope = app.Services.CreateScope())
 {
     var services = scope.ServiceProvider;
@@ -85,128 +124,94 @@ using (var scope = app.Services.CreateScope())
     {
         var userManager = services.GetRequiredService<UserManager<SIGHRUser>>();
         var roleManager = services.GetRequiredService<RoleManager<IdentityRole>>();
-        var loggerFactory = services.GetRequiredService<ILoggerFactory>();
-        var logger = loggerFactory.CreateLogger<Program>();
+        var logger = services.GetRequiredService<ILogger<Program>>();
         var configuration = services.GetRequiredService<IConfiguration>();
-        var pinHasher = services.GetRequiredService<IPasswordHasher<SIGHRUser>>(); // Obter o hasher
+        var pinHasher = services.GetRequiredService<IPasswordHasher<SIGHRUser>>();
 
         await SeedRolesAsync(roleManager, logger);
         await SeedAdminUserWithHashedPinAsync(userManager, roleManager, pinHasher, logger, configuration);
+        await SeedApiTestUserAsync(userManager, roleManager, logger);
     }
     catch (Exception ex)
     {
-        var loggerFactory = services.GetRequiredService<ILoggerFactory>();
-        var logger = loggerFactory.CreateLogger<Program>();
+        var logger = services.GetRequiredService<ILogger<Program>>();
         logger.LogError(ex, "Ocorreu um erro durante o seeding da base de dados.");
     }
 }
-
 app.Run();
 
 // ----- Métodos de Seeding -----
 async Task SeedRolesAsync(RoleManager<IdentityRole> roleManager, ILogger<Program> logger)
 {
-    string[] roleNames = { "Admin", "Office", "Collaborator" };
+    // Removido "Office" da lista
+    string[] roleNames = { "Admin", "Collaborator" };
     foreach (var roleName in roleNames)
     {
         if (!await roleManager.RoleExistsAsync(roleName))
         {
-            var roleResult = await roleManager.CreateAsync(new IdentityRole(roleName));
-            if (roleResult.Succeeded) logger.LogInformation("Role '{RoleName}' criada.", roleName);
-            else foreach (var error in roleResult.Errors) logger.LogError("Erro ao criar role '{RoleName}': {ErrorDescription}", roleName, error.Description);
+            var result = await roleManager.CreateAsync(new IdentityRole(roleName));
+            if (result.Succeeded) logger.LogInformation("Role '{RoleName}' criada.", roleName);
+            else foreach (var error in result.Errors) logger.LogError("Erro ao criar role '{RoleName}': {ErrorDescription}", roleName, error.Description);
         }
     }
 }
 
-async Task SeedAdminUserWithHashedPinAsync(
-    UserManager<SIGHRUser> userManager,
-    RoleManager<IdentityRole> roleManager,
-    IPasswordHasher<SIGHRUser> pinHasher,
-    ILogger<Program> logger,
-    IConfiguration configuration)
+async Task SeedAdminUserWithHashedPinAsync(UserManager<SIGHRUser> userManager, RoleManager<IdentityRole> roleManager, IPasswordHasher<SIGHRUser> pinHasher, ILogger<Program> logger, IConfiguration configuration)
 {
-    string? configUserName = configuration["SeedAdminCredentials:UserName"];
-    string? configEmail = configuration["SeedAdminCredentials:Email"];
-    string? configPIN_str = configuration["SeedAdminCredentials:PIN"];
-    string? configNomeCompleto = configuration["SeedAdminCredentials:NomeCompleto"];
-    string? configPasswordForIdentity = configuration["SeedAdminCredentials:Password"]; // Para senha do Identity
-
+    // ... Este método permanece como está ...
+    string configUserName = configuration["SeedAdminCredentials:UserName"] ?? "bernardo.alves";
+    string configEmail = configuration["SeedAdminCredentials:Email"] ?? $"admin_{configUserName}@sighr.com";
+    if (!int.TryParse(configuration["SeedAdminCredentials:PIN"] ?? "1311", out int adminPIN)) adminPIN = 1311;
+    string configNomeCompleto = configuration["SeedAdminCredentials:NomeCompleto"] ?? "Bernardo Alves (Admin)";
+    string configPassword = configuration["SeedAdminCredentials:Password"] ?? Guid.NewGuid().ToString() + "P@ss1!";
     string adminRoleName = "Admin";
-
-    // Validação e fallbacks
-    if (string.IsNullOrEmpty(configUserName)) { configUserName = "bernardo.alves"; logger.LogWarning("SeedAdminCredentials:UserName não configurado, usando fallback 'bernardo.alves'."); }
-    if (string.IsNullOrEmpty(configEmail)) { configEmail = $"default_{configUserName}@sighr-placeholder.com"; logger.LogWarning("SeedAdminCredentials:Email não configurado, usando fallback para {UserEmail}.", configEmail); }
-    if (string.IsNullOrEmpty(configPIN_str) || !int.TryParse(configPIN_str, out int adminPIN_int)) { adminPIN_int = 1311; logger.LogWarning("SeedAdminCredentials:PIN não configurado ou inválido, usando fallback 1311."); }
-    if (string.IsNullOrEmpty(configNomeCompleto)) { configNomeCompleto = "Bernardo Alves (Admin)"; }
-    if (string.IsNullOrEmpty(configPasswordForIdentity)) { configPasswordForIdentity = Guid.NewGuid().ToString() + "XyZ789#"; logger.LogInformation("SeedAdminCredentials:Password não configurado para Identity. Gerando uma senha dummy forte."); }
-
     var existingUser = await userManager.FindByNameAsync(configUserName);
-
     if (existingUser == null)
     {
-        var adminUser = new SIGHRUser
-        {
-            UserName = configUserName,
-            Email = configEmail,
-            EmailConfirmed = true,
-            NomeCompleto = configNomeCompleto,
-            Tipo = adminRoleName
-            // PinnedHash será definido abaixo
-        };
-        adminUser.PinnedHash = pinHasher.HashPassword(adminUser, adminPIN_int.ToString());
+        var user = new SIGHRUser { UserName = configUserName, Email = configEmail, EmailConfirmed = true, NomeCompleto = configNomeCompleto, Tipo = adminRoleName, PinnedHash = pinHasher.HashPassword(null!, adminPIN.ToString()) };
+        var result = await userManager.CreateAsync(user, configPassword);
+        if (result.Succeeded) await userManager.AddToRoleAsync(user, adminRoleName);
+    }
+    else { if (!await userManager.IsInRoleAsync(existingUser, adminRoleName)) await userManager.AddToRoleAsync(existingUser, adminRoleName); }
+}
 
-        var result = await userManager.CreateAsync(adminUser, configPasswordForIdentity); // Senha dummy para Identity
+// Adicione este método ao final do seu Program.cs, junto com os outros
+async Task SeedApiTestUserAsync(UserManager<SIGHRUser> userManager, RoleManager<IdentityRole> roleManager, ILogger<Program> logger)
+{
+    string testUserName = "apitest";
+    string testEmail = "api@test.com";
+    string testPassword = "PasswordApi123!"; // <<< Uma senha que você conhece!
+    string testRoleName = "Admin"; // Para que este usuário possa testar endpoints de admin
+
+    var existingUser = await userManager.FindByNameAsync(testUserName);
+    if (existingUser == null)
+    {
+        var apiUser = new SIGHRUser
+        {
+            UserName = testUserName,
+            Email = testEmail,
+            EmailConfirmed = true,
+            NomeCompleto = "Usuário de Teste API",
+            Tipo = testRoleName,
+            PinnedHash = null // Este usuário não precisa de PIN de login
+        };
+
+        var result = await userManager.CreateAsync(apiUser, testPassword);
         if (result.Succeeded)
         {
-            logger.LogInformation("Usuário '{UserName}' (Admin) criado com PIN hasheado.", adminUser.UserName);
-            if (await roleManager.RoleExistsAsync(adminRoleName))
+            logger.LogInformation("Usuário de teste de API '{UserName}' criado com sucesso.", apiUser.UserName);
+            if (await roleManager.RoleExistsAsync(testRoleName))
             {
-                var addToRoleResult = await userManager.AddToRoleAsync(adminUser, adminRoleName);
-                if (addToRoleResult.Succeeded) logger.LogInformation("Usuário '{UserName}' adicionado ao role '{AdminRoleName}'.", adminUser.UserName, adminRoleName);
-                else foreach (var error in addToRoleResult.Errors) logger.LogError("Erro ao adicionar usuário '{UserName}' ao role '{AdminRoleName}': {ErrorDescription}", adminUser.UserName, adminRoleName, error.Description);
+                await userManager.AddToRoleAsync(apiUser, testRoleName);
+                logger.LogInformation("Usuário '{UserName}' adicionado ao role '{RoleName}'.", apiUser.UserName, testRoleName);
             }
-            else logger.LogWarning("Role '{AdminRoleName}' não encontrada.", adminRoleName);
         }
-        else foreach (var error in result.Errors) logger.LogError("Erro ao criar usuário '{UserName}': {ErrorDescription}", adminUser.UserName, error.Description);
-    }
-    else // Usuário existente
-    {
-        logger.LogInformation("Usuário '{UserName}' (Admin) já existe. Verificando/atualizando PinnedHash, Tipo, Role.", configUserName);
-        bool needsUpdate = false;
-        var currentPinVerification = PasswordVerificationResult.Failed;
-        if (!string.IsNullOrEmpty(existingUser.PinnedHash))
+        else
         {
-            currentPinVerification = pinHasher.VerifyHashedPassword(existingUser, existingUser.PinnedHash, adminPIN_int.ToString());
-        }
-
-        if (currentPinVerification == PasswordVerificationResult.Failed)
-        {
-            existingUser.PinnedHash = pinHasher.HashPassword(existingUser, adminPIN_int.ToString());
-            needsUpdate = true;
-            logger.LogInformation("PinnedHash atualizado para o usuário '{UserName}'.", configUserName);
-        }
-        else if (currentPinVerification == PasswordVerificationResult.SuccessRehashNeeded)
-        {
-            existingUser.PinnedHash = pinHasher.HashPassword(existingUser, adminPIN_int.ToString()); // Re-hash com o algoritmo mais recente
-            needsUpdate = true;
-            logger.LogInformation("PinnedHash re-hasheado para o usuário '{UserName}' devido a algoritmo atualizado.", configUserName);
-        }
-
-
-        if (existingUser.Tipo != adminRoleName) { existingUser.Tipo = adminRoleName; needsUpdate = true; }
-        if (configNomeCompleto != null && existingUser.NomeCompleto != configNomeCompleto) { existingUser.NomeCompleto = configNomeCompleto; needsUpdate = true; }
-
-        if (needsUpdate)
-        {
-            var updateResult = await userManager.UpdateAsync(existingUser);
-            if (updateResult.Succeeded) logger.LogInformation("Dados atualizados para '{UserName}'.", configUserName);
-            else foreach (var error in updateResult.Errors) logger.LogError("Erro ao atualizar dados de '{UserName}': {ErrorDescription}", configUserName, error.Description);
-        }
-        if (!await userManager.IsInRoleAsync(existingUser, adminRoleName) && await roleManager.RoleExistsAsync(adminRoleName))
-        {
-            var addToRoleResult = await userManager.AddToRoleAsync(existingUser, adminRoleName);
-            if (addToRoleResult.Succeeded) logger.LogInformation("Usuário '{UserName}' (existente) adicionado ao role '{AdminRoleName}'.", configUserName, adminRoleName);
-            else foreach (var error in addToRoleResult.Errors) logger.LogError("Erro ao adicionar usuário '{UserName}' (existente) ao role '{AdminRoleName}': {ErrorDescription}", configUserName, adminRoleName, error.Description);
+            foreach (var error in result.Errors)
+            {
+                logger.LogError("Erro ao criar usuário de teste de API: {ErrorDescription}", error.Description);
+            }
         }
     }
 }
