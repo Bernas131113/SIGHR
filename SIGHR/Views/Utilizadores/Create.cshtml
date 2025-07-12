@@ -5,60 +5,129 @@
     Layout = "_LayoutAdmin";
 }
 
-<h1>@ViewData["Title"]</h1>
-<hr />
-<div class="row">
-    <div class="col-md-6">
-        <form asp-action="Create">
-            <div asp-validation-summary="ModelOnly" class="text-danger"></div>
+@section Styles {
+    <style>
+        /*
+                 * Estilos CSS específicos para a página de criação de utilizador.
+                 * Define um contentor tipo 'card' para o formulário e aplica o estilo 3D aos botões de ação.
+                */
 
-            <div class="mb-3">
-                <label asp-for="UserName" class="form-label"></label>
-                <input asp-for="UserName" class="form-control" />
-                <span asp-validation-for="UserName" class="text-danger"></span>
-            </div>
-            <div class="mb-3">
-                <label asp-for="Email" class="form-label"></label>
-                <input asp-for="Email" class="form-control" />
-                <span asp-validation-for="Email" class="text-danger"></span>
-            </div>
-            <div class="mb-3">
-                <label asp-for="NomeCompleto" class="form-label"></label>
-                <input asp-for="NomeCompleto" class="form-control" />
-                <span asp-validation-for="NomeCompleto" class="text-danger"></span>
-            </div>
-         
-           
-            <div class="mb-3">
-                <label asp-for="PIN" class="form-label"></label>
-                <input asp-for="PIN" type="text" class="form-control" placeholder="----" maxlength="4" pattern="\d{4}" title="O PIN deve conter exatamente 4 números." /> 
-                <span asp-validation-for="PIN" class="text-danger"></span>
-            </div>
-            <div class="mb-3">
-                <label asp-for="Tipo" class="form-label"></label>
-                @* Se ViewBag.Roles existe e tem itens *@
-                @if (ViewBag.Roles != null)
-                {
-                    <select asp-for="Tipo" class="form-select" asp-items="ViewBag.Roles">
-                        <option value="">-- Selecione um Tipo/Role --</option>
-                    </select>
-                }
-                else
-                {
-                    <input asp-for="Tipo" class="form-control" placeholder="Ex: Admin, Office" />
-                }
-                <span asp-validation-for="Tipo" class="text-danger"></span>
-            </div>
-            <div class="form-group mt-3">
-                <button type="submit" class="btn btn-success">Criar Utilizador</button>
-                <a asp-action="Index" class="btn btn-secondary">Voltar à Lista</a>
-            </div>
-        </form>
-    </div>
+        /* Bloco: Contentor do Formulário */
+        .form-container {
+            background: white;
+            padding: 30px 40px;
+            border-radius: 12px;
+            box-shadow: 0 8px 25px rgba(0,0,0,0.1);
+            max-width: 700px; /* Largura máxima do formulário */
+            margin: 20px auto; /* Centrar o formulário na página */
+        }
+
+            .form-container h1 {
+                text-align: center;
+                margin-bottom: 25px;
+                font-size: 1.8rem;
+                color: #333;
+            }
+
+        /* Bloco: Estilos 3D para os Botões de Ação */
+        .btn-custom-style {
+            display: inline-block;
+            padding: 10px 20px;
+            color: white !important;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            box-shadow: inset 0 1px 0 rgba(255,255,255,0.3), inset 0 0 2px rgba(255,255,255,0.3), 0 4px 0 #444, 0 5px 5px rgba(0,0,0,0.2);
+            text-shadow: 0 -1px 0 rgba(0,0,0,0.3);
+            transition: all 0.1s ease-in-out;
+            font-weight: 500;
+            text-decoration: none;
+            text-align: center;
+        }
+
+
+
+        .btn-green-custom {
+            background: linear-gradient(to bottom, #63d367, #4caf50);
+            box-shadow: inset 0 1px 0 rgba(255,255,255,0.3), inset 0 0 2px rgba(255,255,255,0.3), 0 4px 0 #388e3c, 0 5px 5px rgba(0,0,0,0.2);
+        }
+
+
+
+        .btn-red-custom {
+            background: linear-gradient(to bottom, #ff7066, #f44336);
+            box-shadow: inset 0 1px 0 rgba(255,255,255,0.3), inset 0 0 2px rgba(255,255,255,0.3), 0 4px 0 #d32f2f, 0 5px 5px rgba(0,0,0,0.2);
+        }
+
+
+
+        .btn-group-actions {
+            display: flex;
+            justify-content: center;
+            gap: 15px;
+            margin-top: 25px;
+        }
+    </style>
+}
+
+<!-- Contentor principal do formulário, com estilo de 'card' -->
+<div class="form-container">
+    <h1>@ViewData["Title"]</h1>
+    <hr />
+
+    <!-- Formulário para submeter os dados do novo utilizador -->
+    <form asp-action="Create">
+        <!-- Mostra um sumário de erros de validação do modelo, se existirem. -->
+        <div asp-validation-summary="ModelOnly" class="text-danger"></div>
+
+        <!-- Campos do formulário para preenchimento dos dados do utilizador. -->
+        <div class="mb-3">
+            <label asp-for="UserName" class="form-label"></label>
+            <input asp-for="UserName" class="form-control" />
+            <span asp-validation-for="UserName" class="text-danger"></span>
+        </div>
+        <div class="mb-3">
+            <label asp-for="Email" class="form-label"></label>
+            <input asp-for="Email" class="form-control" />
+            <span asp-validation-for="Email" class="text-danger"></span>
+        </div>
+        <div class="mb-3">
+            <label asp-for="NomeCompleto" class="form-label"></label>
+            <input asp-for="NomeCompleto" class="form-control" />
+            <span asp-validation-for="NomeCompleto" class="text-danger"></span>
+        </div>
+        <div class="mb-3">
+            <label asp-for="PIN" class="form-label"></label>
+            <input asp-for="PIN" type="text" class="form-control" placeholder="----" maxlength="4" pattern="\d{4}" title="O PIN deve conter exatamente 4 números." />
+            <span asp-validation-for="PIN" class="text-danger"></span>
+        </div>
+        <div class="mb-3">
+            <label asp-for="Tipo" class="form-label">Função</label>
+            <!-- Lógica para apresentar um dropdown se as funções vierem do servidor, ou um campo de texto caso contrário. -->
+            @if (ViewBag.Roles != null)
+            {
+                <select asp-for="Tipo" class="form-select" asp-items="ViewBag.Roles">
+                    <option value="">-- Selecione uma Função --</option>
+                </select>
+            }
+            else
+            {
+                <input asp-for="Tipo" class="form-control" placeholder="Ex: Admin, Collaborator" />
+            }
+            <span asp-validation-for="Tipo" class="text-danger"></span>
+        </div>
+
+        <!-- Botões de Ação: Submeter o formulário ou voltar à lista de utilizadores. -->
+        <div class="btn-group-actions">
+            <button type="submit" class="btn-custom-style btn-green-custom">Criar Utilizador</button>
+            <a asp-action="Index" class="btn-custom-style btn-red-custom">Voltar à Lista</a>
+        </div>
+    </form>
 </div>
 
 @section Scripts {
     @{
+        // Inclui os scripts de validação do lado do cliente (client-side).
         await Html.RenderPartialAsync("_ValidationScriptsPartial");
     }
 }

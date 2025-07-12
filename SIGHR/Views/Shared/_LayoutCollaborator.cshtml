@@ -1,5 +1,5 @@
 ﻿@{
-    // var userName = User.Identity?.IsAuthenticated == true ? (User.FindFirst("FullName")?.Value ?? User.Identity.Name) : "Colaborador";
+    // Este layout define a estrutura visual para todas as páginas da área do colaborador.
 }
 <!DOCTYPE html>
 <html lang="pt">
@@ -7,57 +7,93 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>@ViewData["Title"] - Área do Colaborador SIGHR</title>
+    <!-- Carrega a folha de estilos principal para a área de utilizadores (admin/colaborador). -->
     <link rel="stylesheet" href="~/css/adminarea.css" asp-append-version="true">
+    <!-- Secção para que as Views individuais possam injetar os seus próprios estilos CSS. -->
     @await RenderSectionAsync("Styles", required: false)
 </head>
 <body>
+    <!--
+        Barra Lateral de Navegação (Sidebar)
+        Contém o menu principal para a área do colaborador.
+    -->
     <div class="sidebar">
+        <!-- Título ou logótipo da secção. -->
         <div class="logo">
             <h4>Área do Colaborador</h4>
         </div>
+
+        <!-- Menu de navegação. -->
         <nav>
             <ul>
+                <!-- Item de menu para o Painel Principal (Dashboard). -->
+                <!-- A classe 'active' é aplicada dinamicamente se a rota atual corresponder. -->
                 <li class="@(IsRouteActive(ViewContext, "Collaborator", "Dashboard") ? "active" : "")">
                     <a asp-controller="Collaborator" asp-action="Dashboard">Meu Painel</a>
                 </li>
+                <!-- Item de menu para o Histórico de Ponto. -->
                 <li class="@(IsRouteActive(ViewContext, "RegistoPonto", "MeuRegisto") ? "active" : "")">
                     <a asp-controller="RegistoPonto" asp-action="MeuRegisto">Registo de Ponto</a>
                 </li>
+                <!-- Item de menu para as Faltas. -->
                 <li>
-                    <a asp-controller="Faltas" asp-action="MinhasFaltas">Minhas Faltas</a>
+                    <a asp-controller="Faltas" asp-action="MinhasFaltas">As Minhas Faltas</a>
                 </li>
+                <!-- Item de menu para as Encomendas. -->
                 <li class="@(IsRouteActive(ViewContext, "Encomendas", "Registar") ? "active" : "")">
-                    <a asp-controller="Encomendas" asp-action="MinhasEncomendas">Minhas Encomenda</a>
+                    <a asp-controller="Encomendas" asp-action="MinhasEncomendas">As Minhas Encomendas</a>
                 </li>
-
-
             </ul>
         </nav>
+
+        <!-- Formulário para o botão de 'Sair' (Logout). -->
         <form asp-controller="Collaborator" asp-action="Logout" method="post" id="collaboratorLogoutForm">
             <button type="submit" class="sair-btn">Sair</button>
         </form>
     </div>
+
+   <!--
+        Conteúdo Principal (Main)
+        O método RenderBody é onde o conteúdo específico de cada View
+        do colaborador será injetado.
+    -->
     <main>
         @RenderBody()
     </main>
+
+    <!-- Secção para que as Views individuais possam injetar os seus próprios scripts JavaScript. -->
     @await RenderSectionAsync("Scripts", required: false)
 </body>
 </html>
 
 @functions {
+    //
+    // Bloco de Funções Auxiliares (Helpers)
+    // Estas funções ajudam a determinar qual link de navegação está ativo.
+    //
+
+    /// <summary>
+    /// Verifica se a página atual é uma Razor Page específica.
+    /// </summary>
     public static bool IsPageActive(ViewContext viewContext, string pagePath)
     {
         var currentPage = viewContext.RouteData.Values["page"]?.ToString();
         return currentPage != null && currentPage.Equals(pagePath, StringComparison.OrdinalIgnoreCase);
     }
 
+    /// <summary>
+    /// Verifica se o controlador atual corresponde a um nome específico.
+    /// </summary>
     public static bool IsControllerActive(ViewContext viewContext, string controllerName)
     {
         var currentController = viewContext.RouteData.Values["controller"]?.ToString();
         return currentController != null && currentController.Equals(controllerName, StringComparison.OrdinalIgnoreCase);
     }
 
-    // Função mais completa para verificar Controller e Action
+    /// <summary>
+    /// Verifica se o controlador e a ação atuais correspondem a nomes específicos.
+    /// É a função mais precisa para destacar o link de menu correto.
+    /// </summary>
     public static bool IsRouteActive(ViewContext viewContext, string controllerName, string actionName)
     {
         var currentController = viewContext.RouteData.Values["controller"]?.ToString();

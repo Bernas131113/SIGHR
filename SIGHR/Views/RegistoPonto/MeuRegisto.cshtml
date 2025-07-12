@@ -1,12 +1,17 @@
 ﻿@model IEnumerable<SIGHR.Models.ViewModels.HorarioColaboradorViewModel>
 @{
-    ViewData["Title"] = "Meu Registo de Ponto";
-    Layout = "_LayoutCollaborator"; // Usa o layout do colaborador
+    ViewData["Title"] = "O Meu Registo de Ponto";
+    Layout = "_LayoutCollaborator";
 }
 
 @section Styles {
     <style>
-        /* Estilos para esta página - idealmente, mova para um CSS compartilhado se forem comuns */
+        /*
+                 * Estilos CSS específicos para a página de Registo de Ponto do Colaborador.
+                 * Garante a consistência visual com as outras páginas da aplicação.
+                */
+
+        /* Bloco: Layout Principal e Cabeçalho */
         .content .header {
             display: flex;
             justify-content: space-between;
@@ -16,19 +21,12 @@
             border-bottom: 1px solid #eee;
         }
 
-            .content .header h1 { /* Ajuste de H1 para esta view */
+            .content .header h2 {
                 margin: 0;
                 font-size: 1.8em;
-                color: #333; /* Cor padrão para o título */
             }
 
-        /* Se você tiver botões de ação no header desta página (ex: "Exportar") */
-        .action-buttons-meuregisto .btn {
-            padding: 8px 15px;
-            font-size: 0.9rem;
-            /* Adicione mais estilos de botão se necessário */
-        }
-
+        /* Bloco: Barra de Filtros */
         .search-bar {
             margin-bottom: 20px;
             margin-top: 15px;
@@ -38,45 +36,43 @@
             align-items: center;
         }
 
-            .search-bar input[type="date"].form-control-sm, /* Mais específico */
-            .search-bar .form-control-sm { /* Fallback para outros inputs sm */
-                padding: .375rem .75rem;
-                font-size: 1rem; /* Aumentado para melhor leitura */
-                border: 1px solid #ced4da;
-                border-radius: .25rem;
-                height: calc(1.5em + .75rem + 2px); /* Altura padrão do Bootstrap para form-control */
-            }
-
-            .search-bar .filter-btn {
-                padding: .375rem .75rem; /* Mesmo padding dos inputs */
-                font-size: 1rem;
-                border-radius: .25rem;
-                color: #fff;
-                border: 1px solid transparent;
-                cursor: pointer;
-                line-height: 1.5; /* Para alinhar com os inputs */
-            }
-
-        .filter-btn.apply {
-            background-color: #0d6efd;
-            border-color: #0d6efd;
+        .form-control-sm {
+            padding: .35rem .6rem;
+            font-size: .875rem;
+            border-radius: .25rem;
+            border: 1px solid #ced4da;
         }
 
-        .filter-btn.clear {
-            background-color: #6c757d;
-            border-color: #6c757d;
-            text-decoration: none;
+        .filter-btn {
+            padding: 7px 12px;
+            font-size: 0.9rem;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
         }
 
+            .filter-btn.apply {
+                background-color: #0d6efd;
+            }
+
+            .filter-btn.clear {
+                background-color: #6c757d;
+            }
 
         .table-container {
             margin-top: 10px;
         }
 
         .table thead th {
-            color: black; /* Letras pretas no cabeçalho */
+            color: black !important;
             vertical-align: middle;
-            background-color: #f8f9fa; /* Fundo leve para cabeçalho */
+            background-color: #f8f9fa !important;
+            border-bottom: 2px solid black !important;
+        }
+
+        .table-bordered thead th:not(:last-child) {
+            border-right: 1px solid #ccc !important;
         }
 
         .table tbody td {
@@ -87,39 +83,41 @@
             text-align: center;
             padding: 20px;
             font-style: italic;
+            color: #6c757d;
             background-color: #f8f9fa;
-            border: 1px solid #eee;
-            border-radius: 5px;
-            margin-top: 20px;
-        }
-        /* Para botões de paginação, se você adicionar */
-        .pagination {
-            justify-content: center;
+            border: 1px solid #dee2e6;
+            border-radius: .25rem;
             margin-top: 20px;
         }
     </style>
 }
 
+<!-- Estrutura principal do conteúdo da página -->
 <div class="content">
+
+    <!-- Cabeçalho da Página: Título à esquerda e espaço para botões à direita. -->
     <div class="header">
-        <h1>@ViewData["Title"]</h1>
-        @* <div class="action-buttons-meuregisto"> *@
-        @* <button onclick="exportarMeuRegistoExcel()" class="btn btn-info">Exportar Excel</button> *@
-        @* </div> *@
+        <h2>@ViewData["Title"]</h2>
+        <div class="action-buttons">
+            <!-- Espaço reservado para futuros botões, como "Exportar Excel". -->
+        </div>
     </div>
 
+    <!-- Formulário de Pesquisa: Permite filtrar os registos por uma data específica. -->
     <form method="get" asp-action="MeuRegisto" asp-controller="RegistoPonto" class="search-bar">
         <input type="date" name="filtroData" value="@ViewData["FiltroDataAtual"]" class="form-control-sm" />
         <button type="submit" class="filter-btn apply">Filtrar por Data</button>
-        <a asp-action="MeuRegisto" asp-controller="RegistoPonto" class="filter-btn clear">Limpar Filtro</a>
+        <a asp-action="MeuRegisto" asp-controller="RegistoPonto" class="filter-btn clear" style="text-decoration: none;">Limpar Filtro</a>
     </form>
 
+    <!-- Lógica de Apresentação: Mostra uma mensagem se não houver registos, ou a tabela caso contrário. -->
     @if (Model == null || !Model.Any())
     {
-        <p class="no-records">Você não tem registos de ponto para o filtro aplicado (ou nenhum registo ainda).</p>
+        <p class="no-records">Não tem registos de ponto para o filtro aplicado (ou nenhum registo ainda).</p>
     }
     else
     {
+        <!-- Tabela de Resultados: Itera sobre o modelo de dados e cria uma linha (<tr>) para cada registo. -->
         <div class="table-responsive table-container">
             <table id="tabela-meus-horarios" class="table table-striped table-hover table-bordered">
                 <thead>
@@ -130,7 +128,6 @@
                         <th>Entrada Almoço</th>
                         <th>Saída</th>
                         <th>Total de Horas</th>
-                        @* <th>Localização</th> *@
                     </tr>
                 </thead>
                 <tbody>
@@ -143,7 +140,6 @@
                             <td>@(item.EntradaAlmoco == TimeSpan.Zero ? "--:--" : item.EntradaAlmoco.ToString(@"hh\:mm"))</td>
                             <td>@(item.HoraSaida == TimeSpan.Zero ? "--:--" : item.HoraSaida.ToString(@"hh\:mm"))</td>
                             <td>@Html.DisplayFor(modelItem => item.TotalHorasTrabalhadas)</td>
-                            @* <td>@Html.DisplayFor(modelItem => item.Localizacao)</td> *@
                         </tr>
                     }
                 </tbody>
@@ -151,15 +147,3 @@
         </div>
     }
 </div>
-
-@* Se precisar de scripts específicos para esta página, como exportar para Excel *@
-@*
-@section Scripts {
-    <script>
-        function exportarMeuRegistoExcel() {
-            // Lógica para exportar a tabela 'tabela-meus-horarios'
-            alert("Exportar para Excel (Meu Registo) a ser implementado.");
-        }
-    </script>
-}
-*@

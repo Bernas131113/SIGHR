@@ -5,15 +5,28 @@
     Layout = "_LayoutAdmin";
 }
 
-<h1>@ViewData["Title"]</h1>
-<h4>Utilizador: @Model.UserName</h4>
-<hr />
-<div class="row">
-    <div class="col-md-6">
+
+
+<!-- Contentor principal do formulário, com estilo de 'card' -->
+<div class="content">
+
+    <!-- Cabeçalho da Página -->
+    <div class="text-center">
+        <h1>@ViewData["Title"]</h1>
+        <h4 class="text-muted">Utilizador: @Model.UserName</h4>
+        <hr />
+    </div>
+
+    <!-- O formulário é colocado dentro de uma div com max-width para melhor legibilidade -->
+    <div style="max-width: 700px; margin: 0 auto;">
         <form asp-action="Edit" asp-route-id="@Model.Id">
+            <!-- Mostra um sumário de erros de validação do modelo, se existirem. -->
             <div asp-validation-summary="ModelOnly" class="text-danger"></div>
+            
+            <!-- O input oculto é essencial para que o servidor saiba qual ID editar -->
             <input type="hidden" asp-for="Id" />
 
+            <!-- Campos do formulário para edição dos dados do utilizador. -->
             <div class="mb-3">
                 <label asp-for="UserName" class="form-label"></label>
                 <input asp-for="UserName" class="form-control" />
@@ -34,13 +47,13 @@
                 <input asp-for="PIN" type="text" class="form-control" placeholder="----" maxlength="4" pattern="\d{4}" title="O PIN deve conter exatamente 4 números." />
                 <span asp-validation-for="PIN" class="text-danger"></span>
             </div>
-          
             <div class="mb-3">
-                <label asp-for="Tipo" class="form-label"></label>
+                <label asp-for="Tipo" class="form-label">Função</label>
+                <!-- Lógica para apresentar um dropdown se as funções vierem do servidor. -->
                 @if (ViewBag.Roles != null)
                 {
                     <select asp-for="Tipo" class="form-select" asp-items="ViewBag.Roles">
-                        <option value="">-- Selecione um Tipo/Role --</option>
+                        <option value="">-- Selecione uma Função --</option>
                     </select>
                 }
                 else
@@ -49,10 +62,15 @@
                 }
                 <span asp-validation-for="Tipo" class="text-danger"></span>
             </div>
-            @* Nota: A alteração de senha geralmente é um fluxo separado por razões de segurança *@
-            <div class="form-group mt-3">
-                <button type="submit" class="btn btn-primary">Salvar Alterações</button>
-                <a asp-action="Index" class="btn btn-secondary">Cancelar</a>
+            
+            <hr />
+            <!-- Botões de Ação: Submeter o formulário ou cancelar e voltar à lista. -->
+            <div class="flex-center" style="gap: 20px;">
+                <!-- Botão de submissão com estilo 3D verde -->
+                <button type="submit" class="btn-custom-style btn-green-custom">Guardar Alterações</button>
+                
+                <!-- Botão de cancelar com estilo 3D vermelho -->
+                <a asp-action="Index" class="btn-custom-style btn-red-custom">Cancelar</a>
             </div>
         </form>
     </div>
@@ -60,6 +78,7 @@
 
 @section Scripts {
     @{
+        // Inclui os scripts de validação do lado do cliente (client-side).
         await Html.RenderPartialAsync("_ValidationScriptsPartial");
     }
 }

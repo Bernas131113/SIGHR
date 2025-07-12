@@ -5,24 +5,50 @@
     Layout = "_LayoutAdmin";
 }
 
-<h1>@ViewData["Title"]</h1>
 
-<h3>Tem certeza que deseja excluir este utilizador?</h3>
-<div>
-    <h4>@Model.NomeCompleto (@Model.UserName)</h4>
+
+<!-- Estrutura principal com a classe 'content' para dar o aspeto de card -->
+<div class="content text-center"> @* 'text-center' para alinhar o conteúdo no centro *@
+
+    <!-- Título da Página -->
+    <h2 class="text-danger">@ViewData["Title"]</h2>
     <hr />
-    <dl class="row">
-        <dt class="col-sm-3">@Html.DisplayNameFor(model => model.UserName)</dt>
-        <dd class="col-sm-9">@Html.DisplayFor(model => model.UserName)</dd>
-        <dt class="col-sm-3">@Html.DisplayNameFor(model => model.Email)</dt>
-        <dd class="col-sm-9">@Html.DisplayFor(model => model.Email)</dd>
-        <dt class="col-sm-3">@Html.DisplayNameFor(model => model.Tipo)</dt>
-        <dd class="col-sm-9">@Html.DisplayFor(model => model.Tipo)</dd>
-    </dl>
+
+    <!-- Mensagem de Confirmação -->
+    <h4>Tem a certeza de que pretende excluir permanentemente este utilizador?</h4>
+    <p class="lead">Esta ação não pode ser revertida.</p>
+    <br />
+
+    <!-- Detalhes do Utilizador a ser Excluído -->
+    <div style="background-color: #f8f9fa; border: 1px solid #dee2e6; border-radius: 8px; padding: 20px; text-align: left; max-width: 500px; margin: 0 auto;">
+        <dl class="row">
+            <dt class="col-sm-4">Nome de Utilizador:</dt>
+            <dd class="col-sm-8">@Html.DisplayFor(model => model.UserName)</dd>
+
+            <dt class="col-sm-4">Email:</dt>
+            <dd class="col-sm-8">@Html.DisplayFor(model => model.Email)</dd>
+
+            <dt class="col-sm-4">Nome Completo:</dt>
+            <dd class="col-sm-8">@Html.DisplayFor(model => model.NomeCompleto)</dd>
+            
+            <dt class="col-sm-4">Função:</dt>
+            <dd class="col-sm-8">@Html.DisplayFor(model => model.Tipo)</dd>
+        </dl>
+    </div>
     <hr />
+
+    <!-- Formulário de Exclusão com Botões de Ação -->
     <form asp-action="Delete" asp-route-id="@Model.Id" method="post">
+        <!-- O input oculto é essencial para que o servidor saiba qual ID excluir -->
         <input type="hidden" asp-for="Id" />
-        <button type="submit" class="btn btn-danger">Excluir</button> |
-        <a asp-action="Index" class="btn btn-secondary">Cancelar</a>
+
+        <!-- Grupo de botões centralizado -->
+        <div class="flex-center" style="gap: 20px;">
+            <!-- O botão de submissão do formulário, com o estilo 3D vermelho de "perigo" -->
+            <button type="submit" class="btn-custom-style btn-red-custom">Sim, Excluir</button>
+            
+            <!-- O botão de cancelar, que simplesmente volta à lista, com estilo 3D cinza/secundário -->
+            <a asp-action="Index" class="btn-custom-style" style="background-color: #6c757d; box-shadow: inset 0 1px 0 rgba(255,255,255,0.3), inset 0 0 2px rgba(255,255,255,0.3), 0 4px 0 #4a4e51, 0 5px 5px rgba(0,0,0,0.2);">Não, Voltar à Lista</a>
+        </div>
     </form>
 </div>

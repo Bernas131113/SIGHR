@@ -6,7 +6,6 @@ using Microsoft.EntityFrameworkCore;
 using SIGHR.Models;
 using SIGHR.Models.ViewModels;
 using System;
-using System.Collections.Generic; // Para List<T>
 using System.Linq;
 using System.Security.Claims;
 using System.Threading.Tasks;
@@ -15,8 +14,10 @@ using SIGHR.Areas.Identity.Data;
 
 namespace SIGHR.Controllers
 {
-    // A autorização no nível do controller pode ser mais genérica se as actions tiverem a sua própria.
-    // Ou, se a maioria das actions for para colaboradores/office/admin, pode ser:
+    /// <summary>
+    /// Controlador responsável por servir as páginas (Views) relacionadas com faltas.
+    /// A lógica de API foi movida para o FaltasApiController.
+    /// </summary>
     [Authorize]
     public class FaltasController : Controller
     {
@@ -31,9 +32,11 @@ namespace SIGHR.Controllers
             _logger = logger;
         }
 
-        // --- ACTIONS PARA COLABORADORES (E ADMINS/OFFICE PARA SUAS PRÓPRIAS FALTAS) ---
+        // --- ACTIONS PARA COLABORADORES ---
 
-        // GET: /Faltas/Registar (Qualquer usuário logado e autorizado nos roles acima pode registrar UMA FALTA PARA SI MESMO)
+        /// <summary>
+        /// Apresenta o formulário para um utilizador registar uma falta para si próprio.
+        /// </summary>
         [HttpGet]
         [Authorize(Policy = "CollaboratorAccessUI")]
         public IActionResult Registar()
@@ -41,21 +44,21 @@ namespace SIGHR.Controllers
             var model = new FaltaViewModel
             {
                 DataFalta = DateTime.Today,
-                Motivo = string.Empty // Se Motivo no ViewModel for 'required string' sem inicializador padrão
+                Motivo = string.Empty
             };
-            return View(model); // Retorna Views/Faltas/Registar.cshtml
+            return View(model);
         }
 
+        /// <summary>
+        /// Processa a submissão do formulário de registo de uma nova falta.
+        /// </summary>
         [HttpPost]
         [ValidateAntiForgeryToken]
         [Authorize(Policy = "CollaboratorAccessUI")]
         public async Task<IActionResult> Registar(FaltaViewModel model)
         {
             var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
-            if (string.IsNullOrEmpty(userId))
-            {
-                return Unauthorized("Utilizador não autenticado.");
-            }
+            if (string.IsNullOrEmpty(userId)) return Unauthorized("Utilizador não autenticado.");
 
             if (model.Inicio >= model.Fim)
             {
@@ -64,12 +67,12 @@ namespace SIGHR.Controllers
 
             if (ModelState.IsValid)
             {
-                var currentUser = await _userManager.FindByIdAsync(userId); // Para logging
-                string userNameForLog = currentUser?.UserName ?? "UsuárioDesconhecido";
+                var currentUser = await _userManager.FindByIdAsync(userId);
+                string userNameForLog = currentUser?.UserName ?? "UtilizadorDesconhecido";
 
                 var falta = new Falta
                 {
-                    UtilizadorId = userId, // A falta é SEMPRE para o usuário logado aqui
+                    UtilizadorId = userId,
                     Data = DateTime.Now,
                     DataFalta = model.DataFalta,
                     Inicio = model.Inicio,
@@ -80,28 +83,26 @@ namespace SIGHR.Controllers
                 _context.Faltas.Add(falta);
                 await _context.SaveChangesAsync();
 
-                _logger.LogInformation($"Falta registrada com sucesso pelo usuário '{userNameForLog}' (ID: {userId}) para si mesmo.");
-                TempData["SuccessMessage"] = "Falta registrada com sucesso!";
+                _logger.LogInformation("Falta registada com sucesso pelo utilizador '{UserNameForLog}' (ID: {UserId}).", userNameForLog, userId);
+                TempData["SuccessMessage"] = "Falta registada com sucesso!";
                 return RedirectToAction(nameof(MinhasFaltas));
             }
-
             return View(model);
         }
 
-        // GET: /Faltas/MinhasFaltas (Qualquer usuário logado e autorizado pode ver AS SUAS PRÓPRIAS FALTAS)
+        /// <summary>
+        /// Apresenta a lista de faltas do utilizador atualmente autenticado.
+        /// </summary>
         [HttpGet]
         [Authorize(Policy = "CollaboratorAccessUI")]
         public async Task<IActionResult> MinhasFaltas()
         {
             var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
-            if (string.IsNullOrEmpty(userId))
-            {
-                return Unauthorized("Utilizador não autenticado.");
-            }
+            if (string.IsNullOrEmpty(userId)) return Unauthorized("Utilizador não autenticado.");
 
             var faltasDoUsuario = await _context.Faltas
-                .Where(f => f.UtilizadorId == userId) // Filtra apenas as faltas do usuário logado
-                .Include(f => f.User) // Opcional: se quiser mostrar o nome do usuário (será sempre o mesmo aqui)
+                .Where(f => f.UtilizadorId == userId)
+                .Include(f => f.User)
                 .OrderByDescending(f => f.DataFalta).ThenBy(f => f.Inicio)
                 .Select(f => new FaltaComUserNameViewModel
                 {
@@ -111,96 +112,23 @@ namespace SIGHR.Controllers
                     Fim = f.Fim,
                     Motivo = f.Motivo,
                     DataRegisto = f.Data,
-                    UserName = f.User != null ? (f.User.NomeCompleto ?? f.User.UserName ?? "N/A") : "N/A"
+                    UserName = f.User != null ? (f.User.NomeCompleto ?? f.User.UserName ?? "N/D") : "N/D"
                 })
                 .ToListAsync();
-            return View(faltasDoUsuario); // Retorna Views/Faltas/MinhasFaltas.cshtml
+            return View(faltasDoUsuario);
         }
 
+        // --- ACTIONS PARA ADMINISTRAÇÃO ---
 
-        // --- ACTIONS PARA ADMINISTRAÇÃO (ADMIN/OFFICE) ---
-
-        // GET: /Faltas/GestaoAdmin (Nome da action para a view de gestão de todas as faltas)
+        /// <summary>
+        /// Apresenta a página de gestão de todas as faltas para administradores.
+        /// </summary>
         [HttpGet]
         [Authorize(Policy = "AdminAccessUI")]
         public IActionResult GestaoAdmin()
         {
             ViewData["Title"] = "Gestão de Todas as Faltas";
             return View(); // Retorna Views/Faltas/GestaoAdmin.cshtml
-        }
-
-        // GET API: /Faltas/ListarTodasApi (API para popular a tabela de gestão do admin)
-        [HttpGet]
-        [Authorize(Policy = "AdminGeneralApiAccess")]
-        public async Task<IActionResult> ListarTodasApi(string? filtroNome, DateTime? filtroData)
-        {
-            try
-            {
-                _logger.LogInformation("API ListarTodasApi chamada com filtroNome: {FiltroNome}, filtroData: {FiltroData}", filtroNome, filtroData);
-                IQueryable<Falta> query = _context.Faltas.Include(f => f.User);
-
-                if (!string.IsNullOrEmpty(filtroNome))
-                {
-                    query = query.Where(f => f.User != null &&
-                                             ((f.User.UserName != null && f.User.UserName.Contains(filtroNome)) ||
-                                              (f.User.NomeCompleto != null && f.User.NomeCompleto.Contains(filtroNome))));
-                }
-                if (filtroData.HasValue)
-                {
-                    query = query.Where(f => f.DataFalta.Date == filtroData.Value.Date);
-                }
-
-                var faltas = await query
-                    .OrderByDescending(f => f.DataFalta)
-                    .ThenBy(f => f.User != null ? f.User.UserName : "")
-                    .ThenBy(f => f.Inicio)
-                    .Select(f => new
-                    {
-                        faltaId = f.Id,
-                        nomeUtilizador = f.User != null ? (f.User.NomeCompleto ?? f.User.UserName ?? "Desconhecido") : "Desconhecido",
-                        dataFalta = f.DataFalta.ToString("yyyy-MM-dd"),
-                        inicio = f.Inicio.ToString(@"hh\:mm\:ss"),
-                        fim = f.Fim.ToString(@"hh\:mm\:ss"),
-                        motivo = f.Motivo,
-                        dataRegisto = f.Data.ToString("yyyy-MM-dd")
-                    })
-                    .ToListAsync();
-                return Ok(faltas);
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Erro ao listar todas as faltas via API.");
-                return StatusCode(500, new { message = "Erro ao processar a solicitação de listagem de faltas." });
-            }
-        }
-
-        // POST API: /Faltas/ExcluirApi (API para excluir faltas selecionadas pelo admin)
-        [HttpPost]
-        [ValidateAntiForgeryToken]
-        [Authorize(Policy = "AdminGeneralApiAccess")]
-        public async Task<IActionResult> ExcluirApi([FromBody] List<long> idsParaExcluir)
-        {
-            if (idsParaExcluir == null || !idsParaExcluir.Any())
-            {
-                return BadRequest(new { message = "Nenhum ID de falta fornecido." });
-            }
-            _logger.LogInformation("API ExcluirApi chamada para IDs: {Ids} pelo usuário {User}", string.Join(", ", idsParaExcluir), User.Identity?.Name);
-            try
-            {
-                var faltasParaRemover = await _context.Faltas.Where(f => idsParaExcluir.Contains(f.Id)).ToListAsync();
-                if (!faltasParaRemover.Any())
-                {
-                    return NotFound(new { message = "Nenhuma das faltas selecionadas foi encontrada." });
-                }
-                _context.Faltas.RemoveRange(faltasParaRemover);
-                await _context.SaveChangesAsync();
-                return Ok(new { message = $"{faltasParaRemover.Count} falta(s) excluída(s) com sucesso." });
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Erro ao excluir faltas via API.");
-                return StatusCode(500, new { message = "Ocorreu um erro ao excluir as faltas." });
-            }
         }
     }
 }

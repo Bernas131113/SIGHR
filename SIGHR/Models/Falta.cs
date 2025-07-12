@@ -2,36 +2,70 @@
 using System;
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
-using SIGHR.Areas.Identity.Data; // Adicione este using para SIGHRUser
+using SIGHR.Areas.Identity.Data; // Namespace para a classe SIGHRUser
 
 namespace SIGHR.Models
 {
+    /// <summary>
+    /// Representa o registo de uma falta ou ausência de um utilizador.
+    /// </summary>
     public class Falta
     {
+        //
+        // Bloco: Propriedades Principais da Entidade
+        //
+
+        /// <summary>
+        /// O identificador único da falta (Chave Primária).
+        /// </summary>
         public long Id { get; set; }
 
-        [Required]
-        public required string UtilizadorId { get; set; } // Deve ser string para FK do IdentityUser
+        /// <summary>
+        /// Chave estrangeira que referencia o ID do utilizador que registou a falta.
+        /// </summary>
+        [Required(ErrorMessage = "O ID do utilizador é obrigatório.")]
+        public required string UtilizadorId { get; set; }
 
-        [Required]
-        public DateTime Data { get; set; } // Data do registo da falta?
+        /// <summary>
+        /// A data e hora em que a falta foi registada no sistema.
+        /// </summary>
+        [Required(ErrorMessage = "A data do registo é obrigatória.")]
+        public DateTime Data { get; set; }
 
-        [Required]
-        public DateTime DataFalta { get; set; } // Data em que a falta ocorreu
+        /// <summary>
+        /// A data específica em que a ausência ocorreu.
+        /// </summary>
+        [Required(ErrorMessage = "A data da falta é obrigatória.")]
+        public DateTime DataFalta { get; set; }
 
-        [Required]
-        public TimeSpan Inicio { get; set; } // Sugestão: Usar TimeSpan
+        /// <summary>
+        /// A hora de início da ausência.
+        /// </summary>
+        [Required(ErrorMessage = "A hora de início é obrigatória.")]
+        public TimeSpan Inicio { get; set; }
 
-        [Required]
-        public TimeSpan Fim { get; set; }    // Sugestão: Usar TimeSpan
+        /// <summary>
+        /// A hora de fim da ausência.
+        /// </summary>
+        [Required(ErrorMessage = "A hora de fim é obrigatória.")]
+        public TimeSpan Fim { get; set; }
 
-        [Required]
-        public required string Motivo { get; set; } // Removido '?' por causa do [Required]
+        /// <summary>
+        /// A justificação ou motivo da falta.
+        /// </summary>
+        [Required(ErrorMessage = "O motivo é obrigatório.")]
+        public required string Motivo { get; set; }
 
-        // Propriedade de navegação para o SIGHRUser
+        //
+        // Bloco: Propriedade de Navegação (Relação)
+        //
+
+        /// <summary>
+        /// Propriedade de navegação que permite ao Entity Framework carregar
+        /// o objeto SIGHRUser associado a esta falta.
+        /// A palavra-chave 'virtual' permite o carregamento preguiçoso (lazy loading), se ativado.
+        /// </summary>
         [ForeignKey("UtilizadorId")]
-        public virtual SIGHRUser? User { get; set; } // NOME DA PROPRIEDADE DE NAVEGAÇÃO: "User" (ou "SIGHRUser", ou "Utilizador")
-                                                     // O 'virtual' é bom para lazy loading, se habilitado.
-                                                     // O '?' indica que pode não ser sempre carregada (não que pode ser nula no BD se a FK for required).
+        public virtual SIGHRUser? User { get; set; }
     }
 }

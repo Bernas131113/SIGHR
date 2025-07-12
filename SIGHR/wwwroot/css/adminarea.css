@@ -476,64 +476,77 @@ select {
     }
 }
 
-/* Responsividade */
-@media screen and (max-width: 768px) {
+@media (max-width: 768px) {
+    /* 1. Mudar o layout principal para vertical */
+    body {
+        flex-direction: column;
+    }
+
+    /* 2. Ajustar a Sidebar para ecrãs pequenos */
     .sidebar {
         width: 100%;
-        height: auto; /* Altura automática em telas pequenas */
+        height: auto;
         border-right: none;
         border-bottom: 1px solid #e0e0e0;
-        /* Adicione mais estilos para a sidebar no mobile se necessário (ex: menu hamburguer) */
     }
 
-    .sair-btn {
-        width: 90%; /* Ajusta a largura do botão sair em mobile */
-        margin-left: auto;
-        margin-right: auto;
-    }
-
+    /* 3. Ajustar o conteúdo principal */
     main {
         padding: 15px;
     }
 
+    /* 4. Empilhar o cabeçalho (.header) */
     .header {
         flex-direction: column;
-        align-items: stretch; /* Faz os itens do header ocuparem a largura */
+        align-items: flex-start; /* Alinha tudo à esquerda */
+        gap: 15px;
     }
 
         .header h2 {
-            text-align: center;
-            margin-bottom: 15px;
+            align-self: center; /* Centraliza o título */
         }
 
     .action-buttons {
         display: flex;
-        flex-direction: column; /* Empilha os botões de ação */
-        gap: 10px; /* Espaço entre botões empilhados */
+        flex-direction: column;
+        width: 100%;
+        gap: 10px;
     }
 
-        .action-buttons button, .action-buttons .btn {
-            width: 100%; /* Botões de ação ocupam largura total */
+        .action-buttons .btn,
+        .action-buttons button,
+        .action-buttons a {
+            width: 100%;
             margin-left: 0;
         }
 
+    /* 5. Empilhar a barra de filtros (.search-bar) */
     .search-bar {
-        flex-direction: column; /* Empilha os inputs de busca */
+        flex-direction: column;
+        align-items: stretch; /* Faz os itens ocuparem 100% da largura */
     }
 
-        .search-bar input, .search-bar button {
-            width: 100%; /* Ocupam largura total */
+        .search-bar input,
+        .search-bar select,
+        .search-bar button,
+        .search-bar a {
+            width: 100%;
         }
 
-    .content { /* Para permitir scroll horizontal da tabela em telas pequenas */
-        overflow-x: auto;
+    /* 6. Permitir scroll horizontal nas tabelas */
+    .table-container {
+        overflow-x: auto; /* A magia acontece aqui */
+        -webkit-overflow-scrolling: touch; /* Melhora a experiência em iOS */
     }
 
-    table { /* Garante que a tabela tenha uma largura mínima para não ficar muito espremida */
-        min-width: 650px;
+    /* 7. Alinhar os cards do dashboard verticalmente */
+    .info-cards-section .row {
+        flex-direction: column;
     }
 
-    main h1 {
-        font-size: 1.8em;
+    .info-cards-section .col-md-6 {
+        max-width: 100%;
+        flex-basis: 100%;
     }
 }
+

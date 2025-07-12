@@ -1,94 +1,100 @@
 ﻿// Data/SIGHRContext.cs
 using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
-using SIGHR.Models; // Para suas entidades customizadas (Horario, Material, etc.)
+using SIGHR.Models; // Namespace das suas entidades (Horario, Material, etc.)
 
 namespace SIGHR.Areas.Identity.Data
 {
-    public class SIGHRContext : IdentityDbContext<SIGHRUser> // Herda de IdentityDbContext com seu usuário customizado
+    /// <summary>
+    /// O contexto da base de dados para a aplicação.
+    /// Funciona como a ponte principal entre as suas classes C# (entidades) e a base de dados.
+    /// Herda de IdentityDbContext para incluir toda a funcionalidade do ASP.NET Core Identity.
+    /// </summary>
+    public class SIGHRContext : IdentityDbContext<SIGHRUser> // Usa a classe de utilizador personalizada SIGHRUser.
     {
         public SIGHRContext(DbContextOptions<SIGHRContext> options)
             : base(options)
         {
         }
 
-        // DbSets para suas entidades customizadas
-        // Não precisa de DbSet<SIGHRUser>, IdentityDbContext já lida com isso.
+        //
+        // Bloco: Mapeamento de Entidades (DbSets)
+        // Cada DbSet representa uma tabela na base de dados que o Entity Framework irá gerir.
+        // O DbSet<SIGHRUser> já é gerido pelo IdentityDbContext.
+        //
         public DbSet<Horario> Horarios { get; set; }
         public DbSet<Falta> Faltas { get; set; }
         public DbSet<Encomenda> Encomendas { get; set; }
         public DbSet<Material> Materiais { get; set; }
         public DbSet<Requisicao> Requisicoes { get; set; }
-        // Adicione quaisquer outros DbSets de entidades que você tenha
+        // Adicione aqui quaisquer outros DbSets de entidades que venha a criar.
 
+        /// <summary>
+        /// Configura o modelo de dados usando a Fluent API do Entity Framework.
+        /// Este método é chamado uma vez durante a inicialização para construir o modelo e as suas relações.
+        /// </summary>
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
-            base.OnModelCreating(modelBuilder); // ESSENCIAL para configurar o esquema do Identity
+            // ESSENCIAL: Chama a implementação base para configurar o esquema do Identity (tabelas de utilizadores, funções, etc.).
+            base.OnModelCreating(modelBuilder);
 
-            // Configurações da Fluent API para suas entidades customizadas:
+            //
+            // Bloco: Configuração da Entidade 'Requisicao' (Tabela de Junção)
+            //
 
-            // Chave composta para Requisicao
+            // Define uma chave primária composta para a tabela Requisicao,
+            // formada pela combinação do ID do Material e do ID da Encomenda.
             modelBuilder.Entity<Requisicao>()
                 .HasKey(r => new { r.MaterialId, r.EncomendaId });
 
-            // Relacionamentos para Requisicao
+            // Define a relação "Muitos para Um" entre Requisicao e Material.
             modelBuilder.Entity<Requisicao>()
                 .HasOne(r => r.Material)
                 .WithMany(m => m.Requisicoes)
                 .HasForeignKey(r => r.MaterialId)
-                .OnDelete(DeleteBehavior.Restrict); // Exemplo: Evitar deleção em cascata se houver requisições
+                .OnDelete(DeleteBehavior.Restrict); // Evita a exclusão em cascata: um Material não pode ser apagado se estiver associado a uma Requisição.
 
+            // Define a relação "Muitos para Um" entre Requisicao e Encomenda.
             modelBuilder.Entity<Requisicao>()
                 .HasOne(r => r.Encomenda)
                 .WithMany(e => e.Requisicoes)
                 .HasForeignKey(r => r.EncomendaId)
-                .OnDelete(DeleteBehavior.Restrict); // Exemplo
+                .OnDelete(DeleteBehavior.Restrict); // Evita a exclusão em cascata: uma Encomenda não pode ser apagada se tiver Requisições.
 
-            // Relacionamentos das suas entidades com SIGHRUser
+
+            //
+            // Bloco: Configuração das Relações com o Utilizador (SIGHRUser)
+            //
+
+            // Relação entre Horario e SIGHRUser.
             modelBuilder.Entity<Horario>(entity =>
             {
-                entity.HasOne(h => h.User) // Propriedade de navegação em Horario
-                      .WithMany(u => u.Horarios)   // Coleção em SIGHRUser
-                      .HasForeignKey(h => h.UtilizadorId) // FK em Horario (deve ser string)
-                      .IsRequired(); // Um Horario DEVE ter um Utilizador
-                entity.HasIndex(h => h.UtilizadorId); // Índice para performance (não único)
+                entity.HasOne(h => h.User)           // Propriedade de navegação em Horario.
+                      .WithMany(u => u.Horarios)     // Coleção de Horarios em SIGHRUser.
+                      .HasForeignKey(h => h.UtilizadorId) // Chave estrangeira em Horario.
+                      .IsRequired();                 // Um Horario TEM de pertencer a um Utilizador.
+                entity.HasIndex(h => h.UtilizadorId); // Adiciona um índice à coluna para melhorar o desempenho das consultas.
             });
 
+            // Relação entre Falta e SIGHRUser.
             modelBuilder.Entity<Falta>(entity =>
             {
                 entity.HasOne(f => f.User)
                       .WithMany(u => u.Faltas)
                       .HasForeignKey(f => f.UtilizadorId)
                       .IsRequired();
-                entity.HasIndex(f => f.UtilizadorId); // Não único
+                entity.HasIndex(f => f.UtilizadorId);
             });
 
+            // Relação entre Encomenda e SIGHRUser.
             modelBuilder.Entity<Encomenda>(entity =>
             {
                 entity.HasOne(e => e.User)
                       .WithMany(u => u.Encomendas)
                       .HasForeignKey(e => e.UtilizadorId)
                       .IsRequired();
-                entity.HasIndex(e => e.UtilizadorId); // Não único
+                entity.HasIndex(e => e.UtilizadorId);
             });
-
-            // Você pode adicionar outras configurações aqui:
-            // - Nomes de tabelas/colunas customizados
-            // - Tipos de dados específicos (ex: para decimais com precisão)
-            // - Índices adicionais
-            // - Dados iniciais (seeding) via modelBuilder.Entity<T>().HasData(...)
-
-            // Exemplo para Material, se tiver um campo de preço decimal:
-            // modelBuilder.Entity<Material>()
-            //     .Property(m => m.Preco)
-            //     .HasColumnType("decimal(18,2)");
-
-            // Ajuste os Unique Constraints que você tinha:
-            // Se um Horario deve ser único para um Utilizador numa Data específica:
-            // modelBuilder.Entity<Horario>()
-            //     .HasIndex(h => new { h.UtilizadorId, h.Data })
-            //     .IsUnique();
-            // Faça o mesmo para Falta se aplicável. Encomenda geralmente não precisa disso.
         }
     }
 }

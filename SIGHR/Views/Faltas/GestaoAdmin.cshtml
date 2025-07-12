@@ -1,17 +1,18 @@
 ﻿@* Views/Faltas/GestaoAdmin.cshtml *@
 @{
-    Layout = "_LayoutAdmin"; // Seu layout da área de ADMINISTRAÇÃO
+    Layout = "_LayoutAdmin";
     ViewData["Title"] = "Gestão de Todas as Faltas";
 }
-@Html.AntiForgeryToken() @* Para o JavaScript pegar para POSTs seguros *@
+@Html.AntiForgeryToken() @* Essencial para o JavaScript obter para pedidos POST seguros *@
 
 @section Styles {
     <style>
-        thead th {
-            color: black; /* Ou #000000 */
-        }
+        /*
+                 * Estilos CSS específicos para a página de Gestão de Faltas.
+                 * Define a aparência da interface, incluindo botões, filtros e a tabela de dados.
+                */
 
-        /* Adapte os estilos da sua página de Encomendas ou Admin aqui */
+        /* Bloco: Layout Principal e Cabeçalho */
         .content .header {
             display: flex;
             justify-content: space-between;
@@ -26,14 +27,18 @@
                 font-size: 1.8em;
             }
 
+        /* Bloco: Botões de Ação (Excluir, Cancelar) */
         .action-buttons .delete-btn, .action-buttons .edit-btn {
             padding: 8px 12px;
             margin-left: 5px;
-            background-color: #dc3545;
             color: white;
             border: none;
             border-radius: 4px;
             cursor: pointer;
+        }
+
+        .action-buttons .delete-btn {
+            background-color: #dc3545;
         }
 
         .action-buttons .edit-btn {
@@ -41,6 +46,7 @@
             color: black;
         }
 
+        /* Bloco: Barra de Filtros e Pesquisa */
         .search-bar {
             margin-bottom: 20px;
             margin-top: 15px;
@@ -73,6 +79,7 @@
                 background-color: #6c757d;
             }
 
+        /* Bloco: Tabela e Elementos Associados */
         .delete-checkbox {
             display: none;
             margin-right: 5px;
@@ -85,14 +92,32 @@
             padding: 20px;
             font-style: italic;
         }
-        /* ID Único */
+
         .table-container {
             margin-top: 10px;
+        }
+
+        .table thead th {
+            color: black !important;
+            vertical-align: middle;
+            background-color: #f8f9fa !important;
+            border-bottom: 2px solid black !important;
+        }
+
+        .table-bordered thead th:not(:last-child) {
+            border-right: 1px solid #ccc !important;
+        }
+
+        .table tbody td {
+            vertical-align: middle;
         }
     </style>
 }
 
+<!-- Estrutura principal do conteúdo da página -->
 <div class="content" id="gestaoFaltasAdminContent">
+
+    <!-- Cabeçalho da Página: Título à esquerda e botões de ação à direita. -->
     <div class="header">
         <h1>@ViewData["Title"]</h1>
         <div class="action-buttons">
@@ -102,6 +127,7 @@
         </div>
     </div>
 
+    <!-- Barra de Filtros: Permite pesquisar por nome do utilizador e data. -->
     <div class="search-bar">
         <input type="text" id="filtro-nome-falta" placeholder="Pesquisar por nome do utilizador" class="form-control-sm">
         <input type="date" id="filtro-data-falta" class="form-control-sm">
@@ -109,6 +135,7 @@
         <button class="filter-btn clear" onclick="limparFiltrosFaltasAdmin()">Limpar</button>
     </div>
 
+    <!-- Tabela de Faltas: Os dados são carregados dinamicamente via JavaScript. -->
     <div class="table-container">
         <table id="tabela-gestao-todas-faltas" class="table table-striped table-bordered table-hover">
             <thead>
@@ -123,7 +150,7 @@
                 </tr>
             </thead>
             <tbody>
-                @* Populado por JavaScript *@
+                @* As linhas da tabela são preenchidas dinamicamente pelo JavaScript *@
             </tbody>
         </table>
         <div id="nenhuma-falta-admin-view">
@@ -134,18 +161,21 @@
 
 @section Scripts {
     <script>
-        // Passa as URLs da API para o script externo
+        // Passa as URLs da API para o script externo, tornando o JS reutilizável.
         const urlsApiGestaoFaltas = {
-            listar: '@Url.Action("ListarTodasApi", "Faltas")', // Aponta para a nova action API
-            excluir: '@Url.Action("ExcluirApi", "Faltas")'   // Aponta para a nova action API de exclusão
+            listar: '@Url.Action("ListarTodas", "FaltasApi")',
+            excluir: '@Url.Action("Excluir", "FaltasApi")'
         };
+
+        // Garante que o script principal só é chamado após o DOM estar pronto.
         document.addEventListener('DOMContentLoaded', function() {
-            if (typeof inicializarGestaoFaltasAdmin === "function") { // Nome da função no JS
+            // Verifica se a função de inicialização existe no ficheiro JS antes de a chamar.
+            if (typeof inicializarGestaoFaltasAdmin === "function") {
                 inicializarGestaoFaltasAdmin(urlsApiGestaoFaltas);
             } else {
-                console.error("Função inicializarGestaoFaltasAdmin não encontrada.");
+                console.error("Função 'inicializarGestaoFaltasAdmin' não encontrada. Verifique o ficheiro adminGestaoFaltas.js.");
             }
         });
     </script>
-    <script src="~/js/adminGestaoFaltas.js" asp-append-version="true"></script> @* Novo arquivo JS *@
+    <script src="~/js/adminGestaoFaltas.js" asp-append-version="true"></script>
 }

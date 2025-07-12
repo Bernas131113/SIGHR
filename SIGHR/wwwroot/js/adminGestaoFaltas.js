@@ -1,26 +1,45 @@
 ﻿// wwwroot/js/adminGestaoFaltas.js
 
+//
+// Bloco de Variáveis Globais
+// Armazenam as URLs da API e os dados carregados para evitar pedidos repetidos.
+//
 let API_URL_ADMIN_FALTAS_LISTAR;
 let API_URL_ADMIN_FALTAS_EXCLUIR;
-let todasAsFaltasAdminCarregadas = []; // Cache local
+let todasAsFaltasAdminCarregadas = [];
 
+/**
+ * Função de inicialização, chamada a partir da View.
+ * Recebe as URLs da API e configura os eventos de clique dos botões da página.
+ * @param {object} urls - Um objeto contendo as URLs 'listar' e 'excluir'.
+ */
 function inicializarGestaoFaltasAdmin(urls) {
     API_URL_ADMIN_FALTAS_LISTAR = urls.listar;
     API_URL_ADMIN_FALTAS_EXCLUIR = urls.excluir;
 
-    // Adicionar event listeners aos botões de filtro se eles não chamam diretamente
+    // Associa as funções aos respetivos botões de filtro e exclusão.
     document.querySelector('#gestaoFaltasAdminContent .filter-btn.apply')?.addEventListener('click', aplicarFiltrosFaltasAdmin);
     document.querySelector('#gestaoFaltasAdminContent .filter-btn.clear')?.addEventListener('click', limparFiltrosFaltasAdmin);
 
-    // Adicionar event listeners aos botões de exclusão
     document.getElementById('btn-ativar-excluir-faltas')?.addEventListener('click', ativarModoExclusaoFaltasAdmin);
     document.getElementById('btn-confirmar-excluir-faltas')?.addEventListener('click', excluirFaltasSelecionadasAdmin);
     document.getElementById('btn-cancelar-excluir-faltas')?.addEventListener('click', cancelarModoExclusaoFaltasAdmin);
     document.getElementById('selecionar-todas-faltas')?.addEventListener('change', function () { toggleSelecionarTodasFaltasAdmin(this); });
 
+    // Carrega os dados iniciais na tabela ao entrar na página.
     carregarTodasAsFaltasDaApi();
 }
 
+
+//
+// Bloco de Funções de Formatação de Dados
+// Converte os dados recebidos da API para um formato legível.
+//
+
+/**
+ * Formata uma data no formato ISO para "dd/mm/aaaa".
+ * @param {string} dataISO - A data em formato ISO (ex: "2023-10-27T00:00:00").
+ */
 function formatarDataParaAdmin(dataISO) {
     if (!dataISO) return 'N/D';
     try {
@@ -29,15 +48,29 @@ function formatarDataParaAdmin(dataISO) {
     } catch (e) { return 'Data Inválida'; }
 }
 
+/**
+ * Formata um TimeSpan C# (ex: "1.08:30:00" ou "08:30:00") para "hh:mm".
+ * @param {string} horaTimeSpan - O valor do TimeSpan como string.
+ */
 function formatarHoraParaAdmin(horaTimeSpan) {
-    if (!horaTimeSpan || horaTimeSpan === "00:00:00" || horaTimeSpan.startsWith("0.")) return '--:--';
+    if (!horaTimeSpan || horaTimeSpan === "00:00:00") return '--:--';
     try {
+        // Remove a parte do dia, se existir (ex: "1.")
         const partesPrincipais = horaTimeSpan.includes('.') ? horaTimeSpan.split('.')[1] : horaTimeSpan;
         const partes = partesPrincipais.split(':');
         return `${partes[0].padStart(2, '0')}:${partes[1].padStart(2, '0')}`;
     } catch (e) { return 'Hora Inválida'; }
 }
 
+
+//
+// Bloco de Comunicação com a API e Renderização da Tabela
+//
+
+/**
+ * Pede os dados das faltas à API, considerando os filtros aplicados,
+ * e depois chama a função para desenhar a tabela.
+ */
 async function carregarTodasAsFaltasDaApi() {
     const tbody = document.getElementById('tabela-gestao-todas-faltas')?.querySelector('tbody');
     const divNenhuma = document.getElementById('nenhuma-falta-admin-view');
@@ -56,7 +89,7 @@ async function carregarTodasAsFaltasDaApi() {
         const response = await fetch(url);
         if (!response.ok) throw new Error(`Erro HTTP: ${response.status}`);
         const data = await response.json();
-        todasAsFaltasAdminCarregadas = data; // Assume que a API retorna o array diretamente
+        todasAsFaltasAdminCarregadas = data;
         renderizarTabelaAdminFaltas(todasAsFaltasAdminCarregadas);
     } catch (error) {
         console.error('Erro ao carregar todas as faltas (Admin):', error);
@@ -64,6 +97,10 @@ async function carregarTodasAsFaltasDaApi() {
     }
 }
 
+/**
+ * Constrói as linhas da tabela (TRs) com base nos dados recebidos.
+ * @param {Array} faltas - O array de objetos de falta vindos da API.
+ */
 function renderizarTabelaAdminFaltas(faltas) {
     const tbody = document.getElementById('tabela-gestao-todas-faltas').querySelector('tbody');
     const divNenhuma = document.getElementById('nenhuma-falta-admin-view');
@@ -88,6 +125,11 @@ function renderizarTabelaAdminFaltas(faltas) {
     atualizarVisibilidadeCheckboxesAdmin();
 }
 
+
+//
+// Bloco de Funções de Filtro
+//
+
 function aplicarFiltrosFaltasAdmin() {
     carregarTodasAsFaltasDaApi();
 }
@@ -98,9 +140,11 @@ function limparFiltrosFaltasAdmin() {
     carregarTodasAsFaltasDaApi();
 }
 
-// Funções de exclusão (ativarModoExclusaoFaltasAdmin, etc.)
-// Serão muito similares às suas funções de exclusão de encomendas,
-// apenas adaptando os IDs dos elementos para os da página de faltas.
+
+//
+// Bloco de Funções para Exclusão em Massa
+// Controla a interface para selecionar e excluir múltiplos registos.
+//
 
 function ativarModoExclusaoFaltasAdmin() {
     document.querySelectorAll('#tabela-gestao-todas-faltas .delete-checkbox').forEach(cb => cb.style.display = 'inline-block');

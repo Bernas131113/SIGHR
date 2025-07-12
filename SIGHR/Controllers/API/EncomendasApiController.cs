@@ -1,81 +1,107 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿// Controllers/Api/EncomendasApiController.cs
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using SIGHR.Areas.Identity.Data;
 using SIGHR.Models;
+using SIGHR.Models.ViewModels;
+using System.Collections.Generic;
+using System.Linq;
+using System.Threading.Tasks;
+using System;
+using Microsoft.Extensions.Logging;
 
 namespace SIGHR.Controllers.Api
 {
     [Route("api/[controller]")]
     [ApiController]
+    [Authorize(Policy = "AdminGeneralApiAccess")] // Segurança para toda a API
     public class EncomendasApiController : ControllerBase
     {
         private readonly SIGHRContext _context;
-        public EncomendasApiController(SIGHRContext context) => _context = context;
+        private readonly ILogger<EncomendasApiController> _logger;
 
-        /// <summary>
-        /// Obtém a lista de todas as encomendas.
-        /// </summary>
-        /// <returns>Lista de objetos Encomenda.</returns>
-        [HttpGet]
-        public async Task<ActionResult<IEnumerable<Encomenda>>> Get() => await _context.Encomendas.ToListAsync();
-
-        /// <summary>
-        /// Obtém uma encomenda específica pelo ID.
-        /// </summary>
-        /// <param name="id">ID da encomenda.</param>
-        /// <returns>Objeto Encomenda correspondente ao ID.</returns>
-        [HttpGet("{id}")]
-        public async Task<ActionResult<Encomenda>> Get(long id)
+        public EncomendasApiController(SIGHRContext context, ILogger<EncomendasApiController> logger)
         {
-            var item = await _context.Encomendas.FindAsync(id);
-            return item == null ? NotFound() : item;
+            _context = context;
+            _logger = logger;
         }
 
         /// <summary>
-        /// Atualiza uma encomenda existente.
+        /// Endpoint para obter a lista de todas as encomendas, com suporte para filtros.
+        /// Rota: GET api/EncomendasApi/ListarComFiltros
         /// </summary>
-        /// <param name="id">ID da encomenda a ser atualizada.</param>
-        /// <param name="model">Objeto Encomenda com os dados atualizados.</param>
-        /// <returns>Status da operação.</returns>
-        [HttpPut("{id}")]
-        public async Task<IActionResult> Put(long id, Encomenda model)
+        [HttpGet("ListarComFiltros")]
+        public async Task<IActionResult> ListarComFiltros(string? filtroClienteObra, DateTime? filtroData, string? filtroEstado)
         {
-            if (id != model.Id) return BadRequest();
-            _context.Entry(model).State = EntityState.Modified;
-            try { await _context.SaveChangesAsync(); }
-            catch (DbUpdateConcurrencyException)
+            _logger.LogInformation("API ListarComFiltros. Cliente/Obra: {FCO}, Data: {FD}, Estado: {FE}", filtroClienteObra, filtroData, filtroEstado);
+            try
             {
-                if (!_context.Encomendas.Any(e => e.Id == id)) return NotFound(); else throw;
+                IQueryable<Encomenda> query = _context.Encomendas
+                    .Include(e => e.User)
+                    .Include(e => e.Requisicoes!).ThenInclude(r => r.Material);
+
+                if (!string.IsNullOrEmpty(filtroClienteObra)) query = query.Where(e => e.User != null && ((e.User.NomeCompleto != null && e.User.NomeCompleto.Contains(filtroClienteObra)) || (e.User.UserName != null && e.User.UserName.Contains(filtroClienteObra))) || (e.DescricaoObra != null && e.DescricaoObra.Contains(filtroClienteObra)));
+                if (filtroData.HasValue) query = query.Where(e => e.Data.Date == filtroData.Value.Date);
+                if (!string.IsNullOrEmpty(filtroEstado)) query = query.Where(e => e.Estado == filtroEstado);
+
+                var encomendas = await query.OrderByDescending(e => e.Data)
+                    .Select(e => new {
+                        encomendaId = e.Id,
+                        nomeCliente = e.User != null ? (e.User.NomeCompleto ?? e.User.UserName ?? "N/D") : "N/D",
+                        dataEncomenda = e.Data.ToString("yyyy-MM-ddTHH:mm:ssZ"),
+                        nomeObra = e.DescricaoObra ?? "N/D",
+                        descricao = (e.Requisicoes != null && e.Requisicoes.Any()) ? string.Join(", ", e.Requisicoes.Where(r => r.Material != null).Select(r => r.Material!.Descricao ?? "").Take(3)) + (e.Requisicoes.Count > 3 ? "..." : "") : "Sem itens",
+                        estado = e.Estado ?? "Indefinido"
+                    }).ToListAsync();
+                return Ok(encomendas);
             }
-            return NoContent();
+            catch (Exception ex) { _logger.LogError(ex, "Erro na API ListarEncomendas"); return StatusCode(500, "Erro interno do servidor."); }
         }
 
         /// <summary>
-        /// Cria uma nova encomenda.
+        /// Endpoint para excluir uma ou mais encomendas em massa.
+        /// Rota: POST api/EncomendasApi/Excluir
         /// </summary>
-        /// <param name="model">Objeto Encomenda a ser criado.</param>
-        /// <returns>Encomenda criada com seu ID.</returns>
-        [HttpPost]
-        public async Task<ActionResult<Encomenda>> Post(Encomenda model)
+        [HttpPost("Excluir")]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> Excluir([FromBody] List<long> idsParaExcluir)
         {
-            _context.Encomendas.Add(model);
-            await _context.SaveChangesAsync();
-            return CreatedAtAction(nameof(Get), new { id = model.Id }, model);
+            if (idsParaExcluir == null || !idsParaExcluir.Any()) return BadRequest(new { message = "Nenhum ID fornecido." });
+            try
+            {
+                var requisicoes = await _context.Requisicoes.Where(r => idsParaExcluir.Contains(r.EncomendaId)).ToListAsync();
+                if (requisicoes.Any()) _context.Requisicoes.RemoveRange(requisicoes);
+                var encomendas = await _context.Encomendas.Where(e => idsParaExcluir.Contains(e.Id)).ToListAsync();
+                if (!encomendas.Any()) return NotFound(new { message = "Nenhuma encomenda encontrada para os IDs fornecidos." });
+                _context.Encomendas.RemoveRange(encomendas);
+                await _context.SaveChangesAsync();
+                return Ok(new { message = $"{encomendas.Count} encomenda(s) excluída(s) com sucesso." });
+            }
+            catch (Exception ex) { _logger.LogError(ex, "Erro na API ExcluirEncomendas"); return StatusCode(500, "Erro interno ao excluir as encomendas."); }
         }
 
         /// <summary>
-        /// Remove uma encomenda existente.
+        /// Endpoint para alterar o estado de uma encomenda específica.
+        /// Rota: POST api/EncomendasApi/MudarEstado
         /// </summary>
-        /// <param name="id">ID da encomenda a ser removida.</param>
-        /// <returns>Status da operação.</returns>
-        [HttpDelete("{id}")]
-        public async Task<IActionResult> Delete(long id)
+        [HttpPost("MudarEstado")]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> MudarEstado([FromBody] MudarEstadoEncomendaRequest request)
         {
-            var item = await _context.Encomendas.FindAsync(id);
-            if (item == null) return NotFound();
-            _context.Encomendas.Remove(item);
-            await _context.SaveChangesAsync();
-            return NoContent();
+            if (!ModelState.IsValid) return BadRequest(ModelState);
+            _logger.LogInformation("API MudarEstadoEncomenda: ID {Id}, Novo Estado {NovoEstado}, por {User}", request.Id, request.NovoEstado, User.Identity?.Name);
+            try
+            {
+                var encomenda = await _context.Encomendas.FindAsync(request.Id);
+                if (encomenda == null) return NotFound(new { message = $"Encomenda com ID {request.Id} não encontrada." });
+                var estadosValidos = new List<string> { "Pendente", "Em Processamento", "Pronta para Envio", "Enviada", "Entregue", "Cancelada" };
+                if (!estadosValidos.Contains(request.NovoEstado)) return BadRequest(new { message = $"O estado '{request.NovoEstado}' é inválido." });
+                encomenda.Estado = request.NovoEstado;
+                await _context.SaveChangesAsync();
+                return Ok(new { message = $"Estado da encomenda {request.Id} atualizado para '{request.NovoEstado}'." });
+            }
+            catch (Exception ex) { _logger.LogError(ex, "Erro na API MudarEstadoEncomenda para ID: {Id}", request.Id); return StatusCode(500, "Erro interno ao mudar o estado."); }
         }
     }
 }

@@ -1,89 +1,244 @@
 ﻿@model SIGHR.Models.ViewModels.CollaboratorDashboardViewModel
-@inject Microsoft.AspNetCore.Antiforgery.IAntiforgery Xsrf // Injeta o serviço Antiforgery
-
 @{
     ViewData["Title"] = "Minha Área";
-    Layout = "_LayoutCollaborator"; // Usa o layout do colaborador
+    Layout = "_LayoutCollaborator";
 }
 
-@functions {
-    // Função para obter o token, será chamada abaixo para popular o input oculto
-    public string? GetAntiXsrfRequestToken()
-    {
-        if (Context == null) return null; // Segurança, Context pode ser nulo em alguns cenários de pré-renderização
-        return Xsrf.GetAndStoreTokens(Context).RequestToken;
-    }
+@section Styles {
+    <style>
+        /* CSS Base para o Dashboard */
+        #dashboard-area {
+            text-align: center;
+        }
+
+            #dashboard-area h1 {
+                font-size: 2rem;
+                margin-bottom: 10px;
+            }
+
+        hr.soft-divider {
+            border: 0;
+            height: 1px;
+            background-color: #eee;
+            margin: 40px auto;
+            width: 80%;
+        }
+
+        /* Secção de Ações (Registo de Ponto) */
+        .ponto-actions-section h4 {
+            margin-bottom: 20px;
+            font-size: 1.5rem;
+            font-weight: 500;
+        }
+
+        .flex-center {
+            display: flex;
+            justify-content: center;
+            gap: 15px;
+            flex-wrap: wrap; /* Para telas menores */
+        }
+
+        /* --- ESTILOS 3D PARA OS BOTÕES (COPIADOS E PADRONIZADOS) --- */
+        .btn-custom-style {
+            display: inline-block;
+            padding: 12px 25px; /* Botões maiores para o dashboard */
+            min-width: 180px; /* Largura mínima para alinhamento */
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            box-shadow: inset 0 1px 0 rgba(255,255,255,0.3), inset 0 0 2px rgba(255,255,255,0.3), 0 4px 0 #444, 0 5px 5px rgba(0,0,0,0.2);
+            text-shadow: 0 -1px 0 rgba(0,0,0,0.3);
+            transition: all 0.1s ease-in-out;
+            font-weight: 600; /* Texto mais forte */
+            font-size: 1.1rem; /* Fonte maior */
+            text-decoration: none;
+            text-align: center;
+        }
+
+            .btn-custom-style:active, .btn-custom-style:hover {
+                transform: translateY(4px);
+                box-shadow: inset 0 1px 0 rgba(255,255,255,0.3), inset 0 0 2px rgba(255,255,255,0.3), 0 0px 0 #444, 0 1px 2px rgba(0,0,0,0.2);
+            }
+
+        .btn-green-custom {
+            background: linear-gradient(to bottom, #63d367, #4caf50);
+            box-shadow: inset 0 1px 0 rgba(255,255,255,0.3), inset 0 0 2px rgba(255,255,255,0.3), 0 4px 0 #388e3c, 0 5px 5px rgba(0,0,0,0.2);
+        }
+
+            .btn-green-custom:active, .btn-green-custom:hover {
+                box-shadow: inset 0 1px 0 rgba(255,255,255,0.3), inset 0 0 2px rgba(255,255,255,0.3), 0 0px 0 #388e3c, 0 1px 2px rgba(0,0,0,0.2);
+            }
+
+        .btn-red-custom {
+            background: linear-gradient(to bottom, #ff7066, #f44336);
+            box-shadow: inset 0 1px 0 rgba(255,255,255,0.3), inset 0 0 2px rgba(255,255,255,0.3), 0 4px 0 #d32f2f, 0 5px 5px rgba(0,0,0,0.2);
+        }
+
+            .btn-red-custom:active, .btn-red-custom:hover {
+                box-shadow: inset 0 1px 0 rgba(255,255,255,0.3), inset 0 0 2px rgba(255,255,255,0.3), 0 0px 0 #d32f2f, 0 1px 2px rgba(0,0,0,0.2);
+            }
+
+        /* --- ESTILOS PARA AS NOTIFICAÇÕES --- */
+        #status-messages-ponto {
+            min-height: 40px; /* Reserva espaço para as mensagens */
+            margin-top: 20px;
+        }
+
+        .alert {
+            opacity: 0; /* Inicia invisível para o fade-in */
+            transition: opacity 0.5s ease-in-out;
+        }
+
+            .alert.show {
+                opacity: 1; /* Classe para tornar visível */
+            }
+        /* -------------------------------------- */
+
+        /* Secção de Informação (Cards) */
+        .info-cards-section {
+            margin-top: 20px;
+            text-align: left;
+        }
+
+        .info-card {
+            background-color: #f9f9f9;
+            border: 1px solid #e9e9e9;
+            border-radius: 8px;
+            padding: 25px;
+            margin-bottom: 20px;
+            height: 100%; /* Para alinhar a altura em colunas */
+        }
+
+            .info-card h4 {
+                font-size: 1.3rem;
+                color: #333;
+                margin-top: 0;
+                margin-bottom: 20px;
+                padding-bottom: 10px;
+                border-bottom: 1px solid #ddd;
+            }
+
+            .info-card p, .info-card li {
+                font-size: 1rem;
+                color: #555;
+                line-height: 1.6;
+            }
+
+            .info-card ul {
+                list-style: none;
+                padding-left: 0;
+            }
+
+            .info-card li {
+                padding: 5px 0;
+            }
+
+        .ponto-info p {
+            display: flex;
+            justify-content: space-between;
+        }
+
+        /* Estrutura de Colunas para Cards */
+        .row {
+            display: flex;
+            flex-wrap: wrap;
+            margin: 0 -10px;
+        }
+
+        .col-md-6 {
+            width: 100%;
+            padding: 0 10px;
+            box-sizing: border-box;
+        }
+
+        @@media (min-width: 768px) {
+            .col-md-6 {
+                flex: 0 0 50%;
+                max-width: 50%;
+            }
+        }
+    </style>
 }
 
-@* Adiciona um input oculto para armazenar o AntiForgeryToken *@
-@* Este formulário não precisa de action, é apenas um container para o token se você não tiver outro form *@
-<form method="post" style="display:none;">
-    @* Estilo para não ser visível *@
-    @Html.AntiForgeryToken() @* Esta é a forma padrão de gerar o input com o token *@
-</form>
-@* Alternativamente, se você não quiser um <form> dummy, pode usar o método GetAntiXsrfRequestToken: *@
-@* <input type="hidden" id="RequestVerificationTokenForScript" value="@GetAntiXsrfRequestToken()" /> *@
-
-
+<!-- Estrutura principal do conteúdo da página, encapsulada num contentor branco. -->
 <div class="content">
-    <div id="registo-ponto-area">
-        <h1>Bem-vindo, @(Model.NomeCompleto ?? "Colaborador")!</h1> @* Coalescência para NomeCompleto *@
-        <hr />
+    <div id="dashboard-area">
+        <!-- Título de boas-vindas ao utilizador. -->
+        <h1>Bem-vindo, @(Model.NomeCompleto ?? "Colaborador")!</h1>
 
-        <div class="row">
-            <div class="col-md-6">
-                <h4>Registar Ponto</h4>
-                <div class="flex-center mb-3">
-                    <button id="btnEntrada" class="btn-custom-style btn-green-custom">Entrada</button>
-                    <button id="btnSaidaAlmoco" class="btn-custom-style btn-red-custom">Saída Almoço</button>
+        <hr class="soft-divider" />
+
+        <!-- Secção de Ações: Botões para o registo de ponto diário. -->
+        <div class="ponto-actions-section">
+            <h4>Registar Ponto</h4>
+            <div class="flex-center mb-3">
+                <button id="btnEntrada" class="btn-custom-style btn-green-custom">Entrada</button>
+                <button id="btnSaidaAlmoco" class="btn-custom-style btn-red-custom">Saída Almoço</button>
+            </div>
+            <div class="flex-center">
+                <button id="btnEntradaAlmoco" class="btn-custom-style btn-green-custom">Entrada Almoço</button>
+                <button id="btnSaida" class="btn-custom-style btn-red-custom">Saída</button>
+            </div>
+            <!-- Área para mostrar mensagens de estado (a processar, sucesso, erro) ao utilizador. -->
+            <div id="status-messages-ponto">
+                <div id="loading-message-ponto" style="display: none;">A processar...</div>
+                <div id="success-message-ponto" class="alert alert-success" style="display: none;"></div>
+                <div id="error-message-ponto" class="alert alert-danger" style="display: none;"></div>
+            </div>
+        </div>
+
+        <hr class="soft-divider" />
+
+        <!-- Secção de Informação: Mostra resumos em formato de 'cards'. -->
+        <div class="info-cards-section">
+            <div class="row">
+                <!-- Card com o resumo do ponto do dia atual. -->
+                <div class="col-md-6">
+                    <div class="info-card">
+                        <h4>Ponto de Hoje (@DateTime.Today.ToString("dd/MM/yyyy"))</h4>
+                        <div class="ponto-info">
+                            <p><strong>Entrada:</strong> <span id="displayEntrada">@(Model.HorarioDeHoje?.HoraEntrada > TimeSpan.Zero ? Model.HorarioDeHoje.HoraEntrada.ToString(@"hh\:mm") : "--:--")</span></p>
+                            <p><strong>Saída Almoço:</strong> <span id="displaySaidaAlmoco">@(Model.HorarioDeHoje?.SaidaAlmoco > TimeSpan.Zero ? Model.HorarioDeHoje.SaidaAlmoco.ToString(@"hh\:mm") : "--:--")</span></p>
+                            <p><strong>Entrada Almoço:</strong> <span id="displayEntradaAlmoco">@(Model.HorarioDeHoje?.EntradaAlmoco > TimeSpan.Zero ? Model.HorarioDeHoje.EntradaAlmoco.ToString(@"hh\:mm") : "--:--")</span></p>
+                            <p><strong>Saída:</strong> <span id="displaySaida">@(Model.HorarioDeHoje?.HoraSaida > TimeSpan.Zero ? Model.HorarioDeHoje.HoraSaida.ToString(@"hh\:mm") : "--:--")</span></p>
+                        </div>
+                    </div>
                 </div>
-                <div class="flex-center">
-                    <button id="btnEntradaAlmoco" class="btn-custom-style btn-green-custom">Entrada Almoço</button>
-                    <button id="btnSaida" class="btn-custom-style btn-red-custom">Saída</button>
-                </div>
-                <div id="status-messages-ponto" class="mt-2">
-                    <div id="loading-message-ponto" style="display: none;">A processar...</div>
-                    <div id="success-message-ponto" class="alert alert-success" style="display: none;"></div>
-                    <div id="error-message-ponto" class="alert alert-danger" style="display: none;"></div>
+
+                <!-- Card com as últimas faltas registadas pelo utilizador. -->
+                <div class="col-md-6">
+                    <div class="info-card">
+                        <h4>Minhas Últimas Faltas</h4>
+                        @if (Model.UltimasFaltas != null && Model.UltimasFaltas.Any())
+                        {
+                            <ul>
+                                @foreach (var falta in Model.UltimasFaltas)
+                                {
+                                    <li>@falta.DataFalta.ToString("dd/MM/yyyy"): @(falta.Motivo ?? "Motivo não especificado")</li>
+                                }
+                            </ul>
+                        }
+                        else
+                        {
+                            <p>Nenhuma falta registada recentemente.</p>
+                        }
+                    </div>
                 </div>
             </div>
         </div>
-        <hr />
-
-        <h4>Ponto de Hoje (@DateTime.Today.ToString("dd/MM/yyyy"))</h4>
-        @if (Model.HorarioDeHoje != null)
-        {
-            <p>Entrada: @(Model.HorarioDeHoje.HoraEntrada == TimeSpan.Zero ? "--:--" : Model.HorarioDeHoje.HoraEntrada.ToString(@"hh\:mm"))</p>
-            <p>Saída Almoço: @(Model.HorarioDeHoje.SaidaAlmoco == TimeSpan.Zero ? "--:--" : Model.HorarioDeHoje.SaidaAlmoco.ToString(@"hh\:mm"))</p>
-            <p>Entrada Almoço: @(Model.HorarioDeHoje.EntradaAlmoco == TimeSpan.Zero ? "--:--" : Model.HorarioDeHoje.EntradaAlmoco.ToString(@"hh\:mm"))</p>
-            <p>Saída: @(Model.HorarioDeHoje.HoraSaida == TimeSpan.Zero ? "--:--" : Model.HorarioDeHoje.HoraSaida.ToString(@"hh\:mm"))</p>
-        }
-        else
-        {
-            <p>Nenhum registo de ponto para hoje.</p>
-        }
-        <hr />
-
-        <h4>Minhas Últimas Faltas</h4>
-        @if (Model.UltimasFaltas != null && Model.UltimasFaltas.Any())
-        {
-            <ul>
-                @foreach (var falta in Model.UltimasFaltas)
-                {
-                    <li>@falta.DataFalta.ToString("dd/MM/yyyy"): @(falta.Motivo ?? "Motivo não especificado")</li>
-                }
-            </ul>
-        }
-        else
-        {
-            <p>Nenhuma falta registada.</p>
-        }
     </div>
 </div>
 
+<!-- Formulário oculto para gerar o token anti-falsificação, que será usado pelo JavaScript. -->
+<form method="post" style="display:none;">
+    @Html.AntiForgeryToken()
+</form>
+
 @section Scripts {
-    @* Passando as URLs das actions para o JavaScript *@
     <script>
+        // Objeto JavaScript que armazena as URLs das actions da API.
+        // Isto permite que o ficheiro JS externo seja reutilizável, sem conter URLs fixas.
         const urls = {
             registarEntrada: '@Url.Action("RegistarEntrada", "RegistoPonto")',
             registarSaidaAlmoco: '@Url.Action("RegistarSaidaAlmoco", "RegistoPonto")',
@@ -92,5 +247,6 @@
             getPontoDoDia: '@Url.Action("GetPontoDoDia", "RegistoPonto")'
         };
     </script>
+    <!-- Carrega o ficheiro JavaScript que contém toda a lógica de interatividade desta página. -->
     <script src="~/js/registoPontoColaborador.js" asp-append-version="true"></script>
 }

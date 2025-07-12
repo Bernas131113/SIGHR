@@ -2,69 +2,170 @@
 
 @{
     ViewData["Title"] = "Gestão de Utilizadores";
-    Layout = "_LayoutAdmin"; 
+    Layout = "_LayoutAdmin";
 }
-<style>
-    thead th {
-        color: black;
-    }
 
-   
+@section Styles {
+    <style>
+        /*
+                 * Estilos CSS específicos para a página de Gestão de Utilizadores.
+                 * Define o layout geral da página e um estilo 3D distinto para os botões de ação.
+                */
 
-</style>
+        /* Bloco: Layout Principal da Página */
+        .content .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            padding-bottom: 10px;
+            border-bottom: 1px solid #eee;
+        }
 
+            .content .header h2 {
+                margin: 0;
+                font-size: 1.8em;
+            }
 
-<h1>@ViewData["Title"]</h1>
+        .action-buttons .btn {
+            padding: 8px 15px;
+            margin-left: 10px;
+            font-size: 0.9rem;
+            cursor: pointer;
+            text-decoration: none;
+        }
 
+        /* Bloco: Estilos dos Botões de Ação com Efeito 3D */
+        .create-btn {
+            background: linear-gradient(to bottom, #34c759, #28a745);
+            color: white;
+            border: none;
+            border-radius: 5px;
+            box-shadow: inset 0 1px 0 rgba(255,255,255,0.3), inset 0 0 2px rgba(255,255,255,0.3), 0 4px 0 #218838, 0 5px 5px rgba(0,0,0,0.2);
+            text-shadow: 0 -1px 0 rgba(0,0,0,0.3);
+            transition: all 0.1s ease;
+        }
 
-<p>
-    <a asp-action="Create" class="btn btn-success mb-3">Criar Novo Utilizador</a>
-</p>
+        .edit-btn {
+            background: linear-gradient(to bottom, #ffca2c, #ffc107);
+            color: black; /* Cor do texto alterada para melhor contraste */
+            border: none;
+            border-radius: 5px;
+            box-shadow: inset 0 1px 0 rgba(255,255,255,0.3), inset 0 0 2px rgba(255,255,255,0.3), 0 4px 0 #e0a800, 0 5px 5px rgba(0,0,0,0.2);
+            text-shadow: 0 1px 0 rgba(255,255,255,0.4);
+            transition: all 0.1s ease;
+        }
 
-@if (Model == null || !Model.Any())
-{
-    <p>Não existem utilizadores registados.</p>
+        .details-btn {
+            background: linear-gradient(to bottom, #34d3f3, #0dcaf0);
+            color: black; /* Cor do texto alterada para melhor contraste */
+            border: none;
+            border-radius: 5px;
+            box-shadow: inset 0 1px 0 rgba(255,255,255,0.3), inset 0 0 2px rgba(255,255,255,0.3), 0 4px 0 #0aa1c2, 0 5px 5px rgba(0,0,0,0.2);
+            text-shadow: 0 1px 0 rgba(255,255,255,0.4);
+            transition: all 0.1s ease;
+        }
+
+        .delete-btn {
+            background: linear-gradient(to bottom, #ff5555, #ff4444);
+            color: white;
+            border: none;
+            border-radius: 5px;
+            box-shadow: inset 0 1px 0 rgba(255,255,255,0.3), inset 0 0 2px rgba(255,255,255,0.3), 0 4px 0 #cc0000, 0 5px 5px rgba(0,0,0,0.2);
+            text-shadow: 0 -1px 0 rgba(0,0,0,0.3);
+            transition: all 0.1s ease;
+        }
+
+        /* Bloco: Estilos da Tabela e Mensagens */
+        .table-container {
+            margin-top: 20px;
+        }
+
+        .table thead th {
+            color: black;
+            vertical-align: middle;
+            background-color: #f8f9fa;
+            border-bottom-width: 2px;
+        }
+
+        .table tbody td {
+            vertical-align: middle;
+        }
+
+        .no-records {
+            text-align: center;
+            padding: 20px;
+            font-style: italic;
+            color: #6c757d;
+            background-color: #f8f9fa;
+            border: 1px solid #dee2e6;
+            border-radius: .25rem;
+            margin-top: 20px;
+        }
+    </style>
 }
-else
-{
-    <div class="table-responsive">
-        <table class="table table-striped table-hover">
-            <thead>
-                <tr>
-                    <th>Nome de Utilizador</th>
-                    <th>Email</th>
-                    <th>Nome Completo</th>
-                    <th>Tipo (Propriedade)</th>
-                    <th>Roles (Identity)</th>
-                    <th>Ações</th>
-                </tr>
-            </thead>
-            <tbody>
-                @foreach (var item in Model)
-                {
-                    <tr>
-                        <td>@(item.UserName ?? "-")</td>
-                        <td>@(item.Email ?? "-")</td>
-                        <td>@(item.NomeCompleto ?? "-")</td>
-                        <td>@(item.Tipo ?? "-")</td>
-                        <td>
-                            @if (item.Roles != null && item.Roles.Any())
-                            {
-                                @string.Join(", ", item.Roles)
-                            }
-                            else
-                            {
-                                <text>Nenhum</text>
-                            }
-                        </td>
-                        <td>
-                            <a asp-action="Edit" asp-route-id="@item.Id" class="btn btn-custom-edit">Editar</a>
-                            <a asp-action="Details" asp-route-id="@item.Id" class="btn btn-custom-details">Detalhes</a>
-                            <a asp-action="Delete" asp-route-id="@item.Id" class="btn btn-danger">Excluir</a>
-                        </td>
-                    </tr>
-                }
-            </tbody>
-        </table>
+
+<!-- Estrutura principal do conteúdo da página -->
+<div class="content">
+
+    <!-- Cabeçalho da Página: Título à esquerda e botão de ação principal à direita. -->
+    <div class="header">
+        <h2>@ViewData["Title"]</h2>
+        <div class="action-buttons">
+            <a asp-action="Create" class="btn create-btn">Criar Novo Utilizador</a>
+        </div>
     </div>
-}
+
+    <!-- Lógica de Apresentação: Mostra uma mensagem se não houver utilizadores, ou a tabela caso contrário. -->
+    @if (Model == null || !Model.Any())
+    {
+        <p class="no-records">Não existem utilizadores registados.</p>
+    }
+    else
+    {
+        <!-- Tabela de Utilizadores: Itera sobre o modelo e cria uma linha (<tr>) para cada utilizador. -->
+        <div class="table-responsive table-container">
+            <table class="table table-striped table-hover table-bordered">
+                <thead>
+                    <tr>
+                        <th>Nome de Utilizador</th>
+                        <th>Email</th>
+                        <th>Nome Completo</th>
+                        <th>Tipo (Propriedade)</th>
+                        <th>Funções (Identity)</th>
+                        <th>Ações</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var item in Model)
+                    {
+                        <tr>
+                            <td>@(item.UserName ?? "-")</td>
+                            <td>@(item.Email ?? "-")</td>
+                            <td>@(item.NomeCompleto ?? "-")</td>
+                            <td>@(item.Tipo ?? "-")</td>
+                            <td>
+                                <!-- Apresenta as funções do utilizador, separadas por vírgula. -->
+                                @if (item.Roles != null && item.Roles.Any())
+                                {
+                                    @string.Join(", ", item.Roles)
+                                }
+                                else
+                                {
+                                    <text>Nenhuma</text>
+                                }
+                            </td>
+                            <td>
+                                <!-- Botões de ação para cada utilizador (Editar, Detalhes, Excluir). -->
+                                <!-- 'btn-sm' torna os botões mais pequenos, adequados para tabelas. -->
+                                <a asp-action="Edit" asp-route-id="@item.Id" class="btn btn-sm edit-btn">Editar</a>
+                                <a asp-action="Details" asp-route-id="@item.Id" class="btn btn-sm details-btn">Detalhes</a>
+                                <a asp-action="Delete" asp-route-id="@item.Id" class="btn btn-sm delete-btn">Excluir</a>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    }
+</div>

@@ -1,11 +1,18 @@
 ﻿@model IEnumerable<SIGHR.Models.ViewModels.MinhaEncomendaViewModel>
 @{
-    ViewData["Title"] = "Minhas Encomendas";
+    ViewData["Title"] = "As Minhas Encomendas";
     Layout = "_LayoutCollaborator";
 }
 
 @section Styles {
     <style>
+        /*
+                 * Estilos CSS específicos para a página de Minhas Encomendas.
+                 * Garante a consistência visual com o resto da aplicação,
+                 * definindo o aspeto do cabeçalho, botões, filtros e tabela.
+                */
+
+        /* Bloco: Layout Principal e Cabeçalho */
         .content .header {
             display: flex;
             justify-content: space-between;
@@ -15,26 +22,27 @@
             border-bottom: 1px solid #eee;
         }
 
-            .content .header h1 {
+            .content .header h2 {
                 margin: 0;
                 font-size: 1.8em;
             }
 
-        .action-buttons-encomendas .btn { /* Estilo para o botão "Registar Nova Encomenda" */
+        /* Bloco: Botão de Ação Principal (Estilo 3D) */
+        .create-btn {
             padding: 8px 15px;
             font-size: 0.9rem;
-            border-radius: 4px;
-            cursor: pointer;
-            text-decoration: none;
-            border: 1px solid transparent;
+            background: linear-gradient(to bottom, #34c759, #28a745);
             color: white;
-            background-color: #007bff; /* Azul (primary) */
+            border: none;
+            border-radius: 5px;
+            box-shadow: inset 0 1px 0 rgba(255,255,255,0.3), inset 0 0 2px rgba(255,255,255,0.3), 0 4px 0 #218838, 0 5px 5px rgba(0,0,0,0.2);
+            text-shadow: 0 -1px 0 rgba(0,0,0,0.3);
+            transition: all 0.1s ease;
+            text-decoration: none;
+            cursor: pointer;
         }
 
-            .action-buttons-encomendas .btn:hover {
-                opacity: 0.85;
-            }
-
+        /* Bloco: Barra de Filtros e Pesquisa */
         .search-bar {
             margin-bottom: 20px;
             margin-top: 15px;
@@ -73,8 +81,14 @@
         }
 
         .table thead th {
-            color: black;
+            color: black !important;
             vertical-align: middle;
+            background-color: #f8f9fa !important;
+            border-bottom: 2px solid black !important;
+        }
+
+        .table-bordered thead th:not(:last-child) {
+            border-right: 1px solid #ccc !important;
         }
 
         .table tbody td {
@@ -85,6 +99,11 @@
             text-align: center;
             padding: 20px;
             font-style: italic;
+            color: #6c757d;
+            background-color: #f8f9fa;
+            border: 1px solid #dee2e6;
+            border-radius: .25rem;
+            margin-top: 20px;
         }
 
         .alert-success {
@@ -93,14 +112,18 @@
     </style>
 }
 
+<!-- Estrutura principal do conteúdo da página -->
 <div class="content">
+
+    <!-- Cabeçalho da Página: Título à esquerda e botão de ação à direita. -->
     <div class="header">
-        <h1>@ViewData["Title"]</h1>
-        <div class="action-buttons-encomendas">
-            <a asp-controller="Encomendas" asp-action="Registar" class="btn">Registar Nova Encomenda</a>
+        <h2>@ViewData["Title"]</h2>
+        <div class="action-buttons">
+            <a asp-controller="Encomendas" asp-action="Registar" class="create-btn">Registar Nova Encomenda</a>
         </div>
     </div>
 
+    <!-- Mensagem de Sucesso: Apresenta feedback ao utilizador após uma operação bem-sucedida. -->
     @if (TempData["SuccessMessage"] != null)
     {
         <div class="alert alert-success" role="alert">
@@ -108,6 +131,7 @@
         </div>
     }
 
+    <!-- Formulário de Pesquisa: Permite filtrar as encomendas por data e estado. -->
     <form method="get" asp-action="MinhasEncomendas" asp-controller="Encomendas" class="search-bar">
         <input type="date" name="filtroData" value="@ViewData["FiltroDataAtual"]" class="form-control-sm" />
         <select name="filtroEstado" class="form-control-sm" asp-items="new SelectList(ViewBag.EstadosEncomenda)">
@@ -117,14 +141,16 @@
         <a asp-action="MinhasEncomendas" asp-controller="Encomendas" class="filter-btn clear" style="text-decoration:none;">Limpar</a>
     </form>
 
+    <!-- Lógica de Apresentação: Mostra uma mensagem se não houver encomendas, ou a tabela caso contrário. -->
     @if (Model == null || !Model.Any())
     {
-        <p class="no-records">Você ainda não fez nenhuma encomenda.</p>
+        <p class="no-records">Ainda não efetuou nenhuma encomenda.</p>
     }
     else
     {
+        <!-- Tabela de Encomendas: Itera sobre o modelo e cria uma linha (<tr>) para cada encomenda. -->
         <div class="table-responsive table-container">
-            <table id="tabela-minhas-encomendas" class="table table-striped table-hover">
+            <table id="tabela-minhas-encomendas" class="table table-striped table-hover table-bordered">
                 <thead>
                     <tr>
                         <th>Data da Encomenda</th>

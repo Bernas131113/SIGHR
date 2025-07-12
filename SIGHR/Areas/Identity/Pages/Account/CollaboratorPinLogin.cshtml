@@ -1,43 +1,62 @@
 ﻿@page "/Identity/Account/CollaboratorPinLogin"
-@model SIGHR.Areas.Identity.Pages.Account.CollaboratorPinLoginModel 
+@model SIGHR.Areas.Identity.Pages.Account.CollaboratorPinLoginModel
 @{
-    Layout = null;
-    ViewData["Title"] = "Login do Colaborador (PIN)";
+    Layout = null; // Esta página não usará o layout padrão para ter um design independente.
+    ViewData["Title"] = "SIGHR - Área do Colaborador";
 }
+
 <!DOCTYPE html>
 <html lang="pt">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>@ViewData["Title"]</title>
+    <!-- Carrega a folha de estilos específica para a página de login. -->
     <link rel="stylesheet" href="~/css/login.css" asp-append-version="true">
 </head>
 <body>
+    <!-- Contentor principal que centraliza o formulário na página. -->
     <div class="container">
+
+        <!-- Logótipo da empresa, com um link para a página inicial. -->
         <a asp-controller="Home" asp-action="Index">
-            <img src="~/images/AllRestore-Logotipo-T180px.png" alt="Logotipo SIGHR" class="logo">
+            <img src="~/images/AllRestore-Logotipo-T180px.png" alt="Logótipo SIGHR" class="logo">
         </a>
-        <div id="registo-ponto-area"> @* Considere renomear este ID para algo como "login-form-container" *@
+
+        <!-- Área que contém o formulário de login. -->
+        <div id="registo-ponto-area">
             <h1>Login do Colaborador</h1>
+
+            <!-- Formulário de submissão dos dados de login. -->
             <form method="post">
+                <!-- Campo oculto para guardar a URL de retorno após o login bem-sucedido. -->
                 <input type="hidden" asp-for="ReturnUrl" />
+
+                <!-- Mostra um sumário de erros de validação do modelo, se existirem. -->
                 <div asp-validation-summary="ModelOnly" class="text-danger mb-3"></div>
+
+                <!-- Campo para o nome de utilizador. -->
                 <div class="form-group">
                     <label asp-for="Input.UserName"></label>
-                    <input asp-for="Input.UserName" type="text" class="obra-input" placeholder="Seu nome de utilizador" required />
+                    <input asp-for="Input.UserName" type="text" class="obra-input" placeholder="O seu nome de utilizador" required />
                     <span asp-validation-for="Input.UserName" class="text-danger"></span>
                 </div>
+
+                <!-- Campo para a password (PIN). -->
                 <div class="form-group">
                     <label asp-for="Input.PIN"></label>
-                    <input asp-for="Input.PIN" type="password" class="obra-input" placeholder="Seu PIN" required maxlength="4" pattern="\d{4}" title="O PIN deve ter 4 números." />
+                    <input asp-for="Input.PIN" type="password" class="obra-input" placeholder="O seu PIN" required maxlength="4" pattern="\d{4}" title="O PIN deve ter 4 números." />
                     <span asp-validation-for="Input.PIN" class="text-danger"></span>
                 </div>
+
+                <!-- Contentor para o botão de submissão, para facilitar a centralização. -->
                 <div class="flex-center mt-3">
                     <button type="submit" class="btn btn-green">Entrar</button>
                 </div>
             </form>
         </div>
     </div>
-    @* @section Scripts { @{ await Html.RenderPartialAsync("_ValidationScriptsPartial"); } } *@
+
+
 </body>
 </html>

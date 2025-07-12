@@ -5,45 +5,36 @@
     Layout = "_LayoutAdmin";
 }
 
-<h1>@ViewData["Title"]</h1>
 
-<div>
-    <h4>@Model.NomeCompleto (@Model.UserName)</h4>
-    <hr />
-    <dl class="row">
-        <dt class="col-sm-3">
-            @Html.DisplayNameFor(model => model.UserName)
-        </dt>
-        <dd class="col-sm-9">
-            @Html.DisplayFor(model => model.UserName)
-        </dd>
-        <dt class="col-sm-3">
-            @Html.DisplayNameFor(model => model.Email)
-        </dt>
-        <dd class="col-sm-9">
-            @Html.DisplayFor(model => model.Email)
-        </dd>
-        <dt class="col-sm-3">
-            @Html.DisplayNameFor(model => model.NomeCompleto)
-        </dt>
-        <dd class="col-sm-9">
-            @Html.DisplayFor(model => model.NomeCompleto)
-        </dd>
-        <dt class="col-sm-3">
-            @Html.DisplayNameFor(model => model.PIN)
-        </dt>
-        <dd class="col-sm-9">
-            @Html.DisplayFor(model => model.PIN)
-        </dd>
-        <dt class="col-sm-3">
-            @Html.DisplayNameFor(model => model.Tipo)
-        </dt>
-        <dd class="col-sm-9">
-            @Html.DisplayFor(model => model.Tipo)
-        </dd>
-        <dt class="col-sm-3">
-            Roles do Identity
-        </dt>
+<!-- Estrutura principal com a classe 'content' para dar o aspeto de card -->
+<div class="content">
+
+    <!-- Cabeçalho da Página: Título à esquerda e botão de ação principal à direita. -->
+    <div class="header">
+        <h2>@ViewData["Title"]: @Model.NomeCompleto</h2>
+        <div class="action-buttons">
+            <!-- Botão de Editar com o estilo 3D amarelo (edit-btn do CSS global) -->
+            <a asp-action="Edit" asp-route-id="@Model.Id" class="btn-custom-style edit-btn">Editar Utilizador</a>
+        </div>
+    </div>
+
+    <!-- Lista de Detalhes: Apresenta os dados do utilizador de forma organizada. -->
+    <dl class="row mt-4">
+        <dt class="col-sm-3">Nome de Utilizador</dt>
+        <dd class="col-sm-9">@Html.DisplayFor(model => model.UserName)</dd>
+
+        <dt class="col-sm-3">Email</dt>
+        <dd class="col-sm-9">@Html.DisplayFor(model => model.Email)</dd>
+
+        <dt class="col-sm-3">Nome Completo</dt>
+        <dd class="col-sm-9">@Html.DisplayFor(model => model.NomeCompleto)</dd>
+
+        @* O campo PIN foi removido daqui por segurança. Nunca se deve exibir um PIN na interface. *@
+
+        <dt class="col-sm-3">Tipo (Propriedade)</dt>
+        <dd class="col-sm-9">@Html.DisplayFor(model => model.Tipo)</dd>
+
+        <dt class="col-sm-3">Funções (Identity)</dt>
         <dd class="col-sm-9">
             @if (Model.Roles != null && Model.Roles.Any())
             {
@@ -51,12 +42,15 @@
             }
             else
             {
-                <text>Nenhum</text>
+                <text>Nenhuma</text>
             }
         </dd>
     </dl>
-</div>
-<div class="mt-3">
-    <a asp-action="Edit" asp-route-id="@Model.Id" class="btn btn-primary">Editar</a> |
-    <a asp-action="Index" class="btn btn-secondary">Voltar à Lista</a>
+    <hr />
+
+    <!-- Botão para voltar à lista, centralizado -->
+    <div class="text-center">
+        <a asp-action="Index" class="btn-custom-style" style="background-color: #6c757d; box-shadow: inset 0 1px 0 rgba(255,255,255,0.3), inset 0 0 2px rgba(255,255,255,0.3), 0 4px 0 #4a4e51, 0 5px 5px rgba(0,0,0,0.2);">Voltar à Lista</a>
+    </div>
+
 </div>

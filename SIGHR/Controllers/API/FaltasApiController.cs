@@ -1,86 +1,94 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿// Controllers/Api/FaltasApiController.cs
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using SIGHR.Areas.Identity.Data;
 using SIGHR.Models;
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Threading.Tasks;
+using Microsoft.Extensions.Logging;
 
 namespace SIGHR.Controllers.Api
 {
     [Route("api/[controller]")]
     [ApiController]
+    [Authorize(Policy = "AdminGeneralApiAccess")] // Segurança para toda a API
     public class FaltasApiController : ControllerBase
     {
         private readonly SIGHRContext _context;
+        private readonly ILogger<FaltasApiController> _logger;
 
-        public FaltasApiController(SIGHRContext context) => _context = context;
-
-        /// <summary>
-        /// Retorna todas as faltas registradas.
-        /// </summary>
-        /// <returns>Lista de objetos <see cref="Falta"/>.</returns>
-        [HttpGet]
-        public async Task<ActionResult<IEnumerable<Falta>>> Get() => await _context.Faltas.ToListAsync();
-
-        /// <summary>
-        /// Retorna uma falta específica pelo ID.
-        /// </summary>
-        /// <param name="id">ID da falta.</param>
-        /// <returns>Objeto <see cref="Falta"/> correspondente ao ID, ou NotFound se não existir.</returns>
-        [HttpGet("{id}")]
-        public async Task<ActionResult<Falta>> Get(long id)
+        public FaltasApiController(SIGHRContext context, ILogger<FaltasApiController> logger)
         {
-            var item = await _context.Faltas.FindAsync(id);
-            return item == null ? NotFound() : item;
+            _context = context;
+            _logger = logger;
         }
 
         /// <summary>
-        /// Atualiza os dados de uma falta existente.
+        /// API para listar todas as faltas, com opções de filtro por nome e data.
+        /// Rota: GET api/FaltasApi/ListarTodas
         /// </summary>
-        /// <param name="id">ID da falta a ser atualizada.</param>
-        /// <param name="model">Dados atualizados da falta.</param>
-        /// <returns>Status HTTP indicando o resultado da operação.</returns>
-        [HttpPut("{id}")]
-        public async Task<IActionResult> Put(long id, Falta model)
+        [HttpGet("ListarTodas")]
+        public async Task<IActionResult> ListarTodas(string? filtroNome, DateTime? filtroData)
         {
-            if (id != model.Id) return BadRequest();
-            _context.Entry(model).State = EntityState.Modified;
             try
             {
-                await _context.SaveChangesAsync();
+                _logger.LogInformation("API ListarTodas chamada com filtroNome: {FiltroNome}, filtroData: {FiltroData}", filtroNome, filtroData);
+                IQueryable<Falta> query = _context.Faltas.Include(f => f.User);
+
+                if (!string.IsNullOrEmpty(filtroNome)) query = query.Where(f => f.User != null && ((f.User.UserName != null && f.User.UserName.Contains(filtroNome)) || (f.User.NomeCompleto != null && f.User.NomeCompleto.Contains(filtroNome))));
+                if (filtroData.HasValue) query = query.Where(f => f.DataFalta.Date == filtroData.Value.Date);
+
+                var faltas = await query
+                    .OrderByDescending(f => f.DataFalta)
+                    .ThenBy(f => f.User != null ? f.User.UserName : "")
+                    .ThenBy(f => f.Inicio)
+                    .Select(f => new {
+                        faltaId = f.Id,
+                        nomeUtilizador = f.User != null ? (f.User.NomeCompleto ?? f.User.UserName ?? "Desconhecido") : "Desconhecido",
+                        dataFalta = f.DataFalta.ToString("yyyy-MM-dd"),
+                        inicio = f.Inicio.ToString(@"hh\:mm\:ss"),
+                        fim = f.Fim.ToString(@"hh\:mm\:ss"),
+                        motivo = f.Motivo,
+                        dataRegisto = f.Data.ToString("yyyy-MM-dd")
+                    })
+                    .ToListAsync();
+                return Ok(faltas);
             }
-            catch (DbUpdateConcurrencyException)
+            catch (Exception ex)
             {
-                if (!_context.Faltas.Any(e => e.Id == id)) return NotFound();
-                else throw;
+                _logger.LogError(ex, "Erro ao listar todas as faltas via API.");
+                return StatusCode(500, new { message = "Erro ao processar o pedido de listagem de faltas." });
             }
-            return NoContent();
         }
 
         /// <summary>
-        /// Cria uma nova falta.
+        /// API para excluir uma ou mais faltas em massa.
+        /// Rota: POST api/FaltasApi/Excluir
         /// </summary>
-        /// <param name="model">Dados da nova falta.</param>
-        /// <returns>Falta criada com status 201 Created.</returns>
-        [HttpPost]
-        public async Task<ActionResult<Falta>> Post(Falta model)
+        [HttpPost("Excluir")]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> Excluir([FromBody] List<long> idsParaExcluir)
         {
-            _context.Faltas.Add(model);
-            await _context.SaveChangesAsync();
-            return CreatedAtAction(nameof(Get), new { id = model.Id }, model);
-        }
+            if (idsParaExcluir == null || !idsParaExcluir.Any()) return BadRequest(new { message = "Nenhum ID de falta fornecido." });
 
-        /// <summary>
-        /// Remove uma falta existente.
-        /// </summary>
-        /// <param name="id">ID da falta a ser removida.</param>
-        /// <returns>Status HTTP indicando o resultado da operação.</returns>
-        [HttpDelete("{id}")]
-        public async Task<IActionResult> Delete(long id)
-        {
-            var item = await _context.Faltas.FindAsync(id);
-            if (item == null) return NotFound();
-            _context.Faltas.Remove(item);
-            await _context.SaveChangesAsync();
-            return NoContent();
+            _logger.LogInformation("API Excluir chamada para os IDs: {Ids} pelo utilizador {User}", string.Join(", ", idsParaExcluir), User.Identity?.Name);
+            try
+            {
+                var faltasParaRemover = await _context.Faltas.Where(f => idsParaExcluir.Contains(f.Id)).ToListAsync();
+                if (!faltasParaRemover.Any()) return NotFound(new { message = "Nenhuma das faltas selecionadas foi encontrada." });
+
+                _context.Faltas.RemoveRange(faltasParaRemover);
+                await _context.SaveChangesAsync();
+                return Ok(new { message = $"{faltasParaRemover.Count} falta(s) excluída(s) com sucesso." });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Erro ao excluir faltas via API.");
+                return StatusCode(500, new { message = "Ocorreu um erro ao excluir as faltas." });
+            }
         }
     }
 }

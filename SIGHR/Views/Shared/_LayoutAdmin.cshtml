@@ -18,7 +18,9 @@
 </head>
 <body>
     <div class="sidebar">
-
+        <div class="logo">
+            <h4>Área do Administrador</h4>
+        </div>
         <nav>
             <ul>
                 <li class="@(ViewContext.RouteData.Values["controller"]?.ToString() == "Admin" && (ViewContext.RouteData.Values["action"]?.ToString() == "Index" || string.IsNullOrEmpty(ViewContext.RouteData.Values["action"]?.ToString())) ? "active" : "")">

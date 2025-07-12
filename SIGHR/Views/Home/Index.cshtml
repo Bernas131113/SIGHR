@@ -34,24 +34,25 @@
     </style>
 </head>
 <body>
+    <!-- O contentor 'content-wrapper' pode ser estilizado no login.css para gerir o layout geral. -->
     <div class="content-wrapper">
+        <!-- Contentor para o logótipo, facilitando o seu alinhamento. -->
         <div class="logo-container">
             <a asp-controller="Home" asp-action="Index">
-                <img src="~/images/AllRestore-Logotipo-T180px.png" alt="Logotipo SIGHR" class="logo">
+                <img src="~/images/AllRestore-Logotipo-T180px.png" alt="Logótipo SIGHR" class="logo">
             </a>
         </div>
+
+        <!-- Área de seleção do tipo de utilizador. -->
         <div id="registo-ponto-area">
             <h1>Bem-vindo ao SIGHR</h1>
-            <p>Selecione o seu tipo de utilizador para continuar:</p>
+            <p>Selecione o seu perfil para continuar:</p>
 
-            <!-- Os botões aqui. Se .btn os torna inline-block,
-                 o text-align: center no #registo-ponto-area os centralizará. -->
+            <!-- Botões de navegação para as respetivas páginas de login. -->
             <a href="~/Identity/Account/AdminLogin" class="btn btn-green">Administrador</a>
             <a href="~/Identity/Account/CollaboratorPinLogin" class="btn btn-blue">Colaborador</a>
         </div>
     </div>
 
-
-    <script src="~/js/site.js" asp-append-version="true"></script>
 </body>
 </html>

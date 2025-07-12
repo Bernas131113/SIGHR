@@ -1,28 +1,38 @@
 ﻿@using Microsoft.AspNetCore.Identity
 @using SIGHR.Areas.Identity.Data
 
+@* Injeta os serviços do ASP.NET Core Identity necessários para verificar o estado do login e obter os dados do utilizador. *@
 @inject SignInManager<SIGHRUser> SignInManager
 @inject UserManager<SIGHRUser> UserManager
 
+<!-- Lista de navegação que contém os itens de autenticação. -->
 <ul class="navbar-nav">
-@if (SignInManager.IsSignedIn(User))
-{
-    <li class="nav-item">
-        <a id="manage" class="nav-link text-dark" asp-area="Identity" asp-page="/Account/Manage/Index" title="Manage">Hello @UserManager.GetUserName(User)!</a>
-    </li>
-    <li class="nav-item">
-        <form id="logoutForm" class="form-inline" asp-area="Identity" asp-page="/Account/Logout" asp-route-returnUrl="@Url.Action("Index", "Home", new { area = "" })">
-            <button id="logout" type="submit" class="nav-link btn btn-link text-dark border-0">Logout</button>
-        </form>
-    </li>
-}
-else
-{
-    <li class="nav-item">
-        <a class="nav-link text-dark" id="register" asp-area="Identity" asp-page="/Account/Register">Register</a>
-    </li>
-    <li class="nav-item">
-        <a class="nav-link text-dark" id="login" asp-area="Identity" asp-page="/Account/Login">Login</a>
-    </li>
-}
+    @if (SignInManager.IsSignedIn(User))
+    {
+        // Bloco: Apresentado quando o utilizador ESTÁ autenticado.
+
+        <li class="nav-item">
+            <!-- Link para a página de gestão de conta, com uma saudação ao utilizador. -->
+            <a id="manage" class="nav-link text-dark" asp-area="Identity" asp-page="/Account/Manage/Index" title="Gerir Conta">Olá @UserManager.GetUserName(User)!</a>
+        </li>
+        <li class="nav-item">
+            <!-- Formulário que contém o botão de Logout. O uso de um formulário POST é uma prática de segurança recomendada. -->
+            <form id="logoutForm" class="form-inline" asp-area="Identity" asp-page="/Account/Logout" asp-route-returnUrl="@Url.Action("Index", "Home", new { area = "" })">
+                <button id="logout" type="submit" class="nav-link btn btn-link text-dark border-0">Sair</button>
+            </form>
+        </li>
+    }
+    else
+    {
+        // Bloco: Apresentado quando o utilizador NÃO ESTÁ autenticado.
+
+        <li class="nav-item">
+            <!-- Link para a página de registo de um novo utilizador. -->
+            <a class="nav-link text-dark" id="register" asp-area="Identity" asp-page="/Account/Register">Registar</a>
+        </li>
+        <li class="nav-item">
+            <!-- Link para a página de login. -->
+            <a class="nav-link text-dark" id="login" asp-area="Identity" asp-page="/Account/Login">Entrar</a>
+        </li>
+    }
 </ul>
